@@ -21,13 +21,17 @@ class FaceDatabaseManager:
         self.table = self._init_table()
 
     def _init_table(self):
-        existing_tables = self.db.list_tables() if hasattr(self.db, "list_tables") else self.db.table_names()
-        if self.table_name not in existing_tables:
-            logger.info(f"Creating new LanceDB table '{self.table_name}' at {self.db_uri}...")
-            return self.db.create_table(self.table_name, schema=FaceRecognitionSchema)
-        else:
-            logger.info(f"Opening existing LanceDB table '{self.table_name}'...")
+        try:
             return self.db.open_table(self.table_name)
+        except Exception:
+            logger.info(f"Table '{self.table_name}' not found. Creating new LanceDB table at {self.db_uri}...")
+            try:
+                return self.db.create_table(self.table_name, schema=FaceRecognitionSchema, exist_ok=True)
+            except (TypeError, Exception):
+                try:
+                    return self.db.create_table(self.table_name, schema=FaceRecognitionSchema)
+                except Exception:
+                    return self.db.open_table(self.table_name)
 
     def add_face(self, embedding: np.ndarray, entity_name: str) -> str:
         """
@@ -163,5 +167,11 @@ class FaceDatabaseManager:
         """
         Clear all database entries.
         """
-        self.db.drop_table(self.table_name)
+        try:
+            self.db.drop_table(self.table_name, ignore_missing=True)
+        except TypeError:
+            try:
+                self.db.drop_table(self.table_name)
+            except Exception:
+                pass
         self.table = self._init_table()
