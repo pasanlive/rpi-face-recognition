@@ -1,3 +1,4 @@
+import os
 try:
     import degirum as dg
     DEGIRUM_AVAILABLE = True

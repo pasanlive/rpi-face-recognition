@@ -12,6 +12,8 @@ from face_engine.alignment import align_and_crop
 from database.manager import FaceDatabaseManager
 from pipeline import FaceRecognitionPipeline
 
+from camera_wrapper import CameraWrapper
+
 logger = logging.getLogger(__name__)
 
 def create_app():
@@ -35,18 +37,9 @@ def create_app():
 
     def get_camera():
         nonlocal camera_cap
-        if camera_cap is None or not camera_cap.isOpened():
+        if camera_cap is None or not camera_cap.is_opened():
             logger.info(f"Opening camera source '{current_camera_index}'...")
-            if isinstance(current_camera_index, int):
-                camera_cap = cv2.VideoCapture(current_camera_index, cv2.CAP_V4L2)
-                if not camera_cap.isOpened():
-                    camera_cap = cv2.VideoCapture(current_camera_index)
-            else:
-                camera_cap = cv2.VideoCapture(current_camera_index)
-
-            if camera_cap and camera_cap.isOpened():
-                camera_cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                camera_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            camera_cap = CameraWrapper(current_camera_index)
         return camera_cap
 
     def generate_frames():
@@ -55,7 +48,7 @@ def create_app():
         while True:
             try:
                 cap = get_camera()
-                if not cap or not cap.isOpened():
+                if not cap or not cap.is_opened():
                     success = False
                     frame = None
                 else:
@@ -105,86 +98,103 @@ def create_app():
 
     @app.route('/api/identities', methods=['GET'])
     def list_identities():
-        entities = db_manager.list_entities()
-        return jsonify({"success": True, "identities": entities})
+        try:
+            entities = db_manager.list_entities()
+            return jsonify({"success": True, "identities": entities})
+        except Exception as e:
+            logger.error(f"Error in /api/identities: {e}", exc_info=True)
+            return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/identities/<entity_name>', methods=['DELETE'])
     def delete_identity(entity_name):
-        success = db_manager.delete_entity(entity_name)
-        return jsonify({"success": success, "entity_name": entity_name})
+        try:
+            success = db_manager.delete_entity(entity_name)
+            return jsonify({"success": success, "entity_name": entity_name})
+        except Exception as e:
+            logger.error(f"Error in DELETE /api/identities: {e}", exc_info=True)
+            return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/enroll', methods=['POST'])
     def enroll_face():
-        identity = request.form.get('identity', '').strip()
-        if not identity:
-            return jsonify({"success": False, "error": "Identity name is required"}), 400
+        try:
+            identity = request.form.get('identity', '').strip()
+            if not identity:
+                return jsonify({"success": False, "error": "Identity name is required"}), 400
 
-        # Option A: Uploaded file
-        if 'image' in request.files:
-            file = request.files['image']
-            if file.filename != '':
-                file_bytes = np.frombuffer(file.read(), np.uint8)
-                img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            # Option A: Uploaded file
+            if 'image' in request.files:
+                file = request.files['image']
+                if file.filename != '':
+                    file_bytes = np.frombuffer(file.read(), np.uint8)
+                    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-                if pipeline:
-                    detected = pipeline.detector.detect(img)
+                    if pipeline:
+                        detected = pipeline.detector.detect(img)
+                        if len(detected.results) != 1:
+                            return jsonify({
+                                "success": False,
+                                "error": f"Image must contain exactly 1 face. Found {len(detected.results)} faces."
+                            }), 400
+
+                        res = detected.results[0]
+                        landmarks = [lm["landmark"] for lm in res["landmarks"]]
+                        aligned_img, _ = align_and_crop(img, landmarks, image_size=Config.INPUT_FACE_SIZE)
+                        embedding = pipeline.embedder.extract_embedding(aligned_img)
+                        rec_id = db_manager.add_face(embedding, identity)
+                        return jsonify({"success": True, "record_id": rec_id, "identity": identity})
+
+            # Option B: Capture current camera frame
+            cap = get_camera()
+            if cap and cap.is_opened():
+                success, frame = cap.read()
+                if success and frame is not None and pipeline:
+                    detected = pipeline.detector.detect(frame)
                     if len(detected.results) != 1:
                         return jsonify({
                             "success": False,
-                            "error": f"Image must contain exactly 1 face. Found {len(detected.results)} faces."
+                            "error": f"Camera capture must contain exactly 1 face. Found {len(detected.results)} faces."
                         }), 400
 
                     res = detected.results[0]
                     landmarks = [lm["landmark"] for lm in res["landmarks"]]
-                    aligned_img, _ = align_and_crop(img, landmarks, image_size=Config.INPUT_FACE_SIZE)
+                    aligned_img, _ = align_and_crop(frame, landmarks, image_size=Config.INPUT_FACE_SIZE)
                     embedding = pipeline.embedder.extract_embedding(aligned_img)
                     rec_id = db_manager.add_face(embedding, identity)
                     return jsonify({"success": True, "record_id": rec_id, "identity": identity})
 
-        # Option B: Capture current camera frame
-        cap = get_camera()
-        success, frame = cap.read()
-        if success and pipeline:
-            detected = pipeline.detector.detect(frame)
-            if len(detected.results) != 1:
-                return jsonify({
-                    "success": False,
-                    "error": f"Camera capture must contain exactly 1 face. Found {len(detected.results)} faces."
-                }), 400
-
-            res = detected.results[0]
-            landmarks = [lm["landmark"] for lm in res["landmarks"]]
-            aligned_img, _ = align_and_crop(frame, landmarks, image_size=Config.INPUT_FACE_SIZE)
-            embedding = pipeline.embedder.extract_embedding(aligned_img)
-            rec_id = db_manager.add_face(embedding, identity)
-            return jsonify({"success": True, "record_id": rec_id, "identity": identity})
-
-        return jsonify({"success": False, "error": "Enrollment failed"}), 500
+            return jsonify({"success": False, "error": "Enrollment failed. Camera frame unavailable or pipeline not initialized."}), 400
+        except Exception as e:
+            logger.error(f"Error in /api/enroll: {e}", exc_info=True)
+            return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/settings', methods=['GET', 'POST'])
     def settings():
         nonlocal current_threshold, current_camera_index, camera_cap
-        if request.method == 'POST':
-            data = request.json or {}
-            if 'threshold' in data:
-                current_threshold = float(data['threshold'])
-            if 'camera_index' in data:
-                new_idx = int(data['camera_index'])
-                if new_idx != current_camera_index:
-                    current_camera_index = new_idx
-                    if camera_cap:
-                        camera_cap.release()
-                        camera_cap = None
-            return jsonify({"success": True, "threshold": current_threshold, "camera_index": current_camera_index})
-        
-        return jsonify({
-            "success": True,
-            "threshold": current_threshold,
-            "camera_index": current_camera_index,
-            "target_device": Config.TARGET_DEVICE,
-            "detection_model": Config.DEFAULT_DETECTION_MODEL,
-            "embedding_model": Config.EMBEDDING_MODEL
-        })
+        try:
+            if request.method == 'POST':
+                data = request.json or {}
+                if 'threshold' in data:
+                    current_threshold = float(data['threshold'])
+                if 'camera_index' in data:
+                    new_idx = int(data['camera_index'])
+                    if new_idx != current_camera_index:
+                        current_camera_index = new_idx
+                        if camera_cap:
+                            camera_cap.release()
+                            camera_cap = None
+                return jsonify({"success": True, "threshold": current_threshold, "camera_index": current_camera_index})
+            
+            return jsonify({
+                "success": True,
+                "threshold": current_threshold,
+                "camera_index": current_camera_index,
+                "target_device": Config.TARGET_DEVICE,
+                "detection_model": Config.DEFAULT_DETECTION_MODEL,
+                "embedding_model": Config.EMBEDDING_MODEL
+            })
+        except Exception as e:
+            logger.error(f"Error in /api/settings: {e}", exc_info=True)
+            return jsonify({"success": False, "error": str(e)}), 500
 
     return app
 

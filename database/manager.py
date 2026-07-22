@@ -146,8 +146,16 @@ class FaceDatabaseManager:
             return []
 
         df = self.table.to_pandas()
+        if df.empty:
+            return []
+
         grouped = df.groupby("entity_name").size().reset_index(name="count")
-        entities = grouped.to_dict(orient="records")
+        entities = []
+        for _, row in grouped.iterrows():
+            entities.append({
+                "entity_name": str(row["entity_name"]),
+                "count": int(row["count"])
+            })
         return entities
 
     def delete_entity(self, entity_name: str) -> bool:
