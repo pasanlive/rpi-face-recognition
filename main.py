@@ -140,6 +140,8 @@ def cmd_web(args):
 
 def main():
     parser = argparse.ArgumentParser(description="Raspberry Pi 5 (AI Hat+ 26 TOPS) Face Recognition App")
+    parser.add_argument("--token", default=Config.TOKEN, help="DeGirum cloud token")
+    parser.add_argument("--zoo-url", default=Config.ZOO_URL, help="Model zoo URL or local directory path")
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
     # Subcommand: run
@@ -165,6 +167,11 @@ def main():
     parser_web.add_argument("--port", type=int, default=5000, help="Port to bind web server")
 
     args = parser.parse_args()
+
+    if args.token:
+        Config.TOKEN = args.token
+    if args.zoo_url:
+        Config.ZOO_URL = args.zoo_url
 
     if args.command == "run":
         cmd_run(args)
