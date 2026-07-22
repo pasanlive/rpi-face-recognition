@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raspberry Pi 5 Face Recognition Dashboard | Hailo-8 AI Hat+</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #131b2e;
+      --card-border: #1e293b;
+      --accent-color: #10b981;
+      --accent-hover: #059669;
+      --danger-color: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --input-bg: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .header-status {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .chip-badge {
+      background-color: var(--input-bg);
+      border: 1px solid var(--card-border);
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    main {
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 2rem;
+      flex: 1;
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .video-container {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #000;
+      position: relative;
+      aspect-ratio: 4 / 3;
+    }
+
+    .video-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent-color);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--input-bg);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--card-border);
+    }
+
+    .identity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .identity-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background-color: var(--input-bg);
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+    }
+
+    .identity-name {
+      font-weight: 500;
+    }
+
+    .identity-count {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background-color: var(--card-bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      margin-left: 0.5rem;
+    }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: var(--danger-color);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0.2rem 0.5rem;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .slider-val {
+      font-weight: 600;
+      min-width: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-group">
+      <span class="logo-badge">RPi5 + AI Hat+</span>
+      <h1>Face Recognition System (26 TOPS)</h1>
+    </div>
+    <div class="header-status">
+      <div class="chip-badge">
+        <span class="status-dot"></span>
+        Hailo-8 Accelerator Active
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: Video Live Stream -->
+    <div class="left-col">
+      <div class="card">
+        <div class="card-title">
+          <span>Live AI Camera Feed</span>
+          <span id="fps-counter" style="font-size: 0.85rem; color: var(--text-muted);">ArcFace + SCRFD</span>
+        </div>
+        <div class="video-container">
+          <img src="/video_feed" alt="Live Face Recognition Stream">
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Enrollment, Enrolled List, Settings -->
+    <div class="right-col">
+      
+      <!-- Enrollment Card -->
+      <div class="card">
+        <div class="card-title">Enroll New Identity</div>
+        <form id="enroll-form">
+          <div class="form-group">
+            <label for="identity-name">Person Name</label>
+            <input type="text" id="identity-name" class="form-control" placeholder="e.g. Alice, Bob" required>
+          </div>
+          <div class="form-group">
+            <label for="image-file">Photo Upload (Optional)</label>
+            <input type="file" id="image-file" class="form-control" accept="image/*">
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn">Register Identity</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Database Enrolled Cards -->
+      <div class="card">
+        <div class="card-title">
+          Enrolled Identities
+          <span id="total-count" class="identity-count">0 Enrolled</span>
+        </div>
+        <div class="identity-list" id="identity-list">
+          <div style="color: var(--text-muted); font-size: 0.9rem;">Loading identities...</div>
+        </div>
+      </div>
+
+      <!-- System Settings -->
+      <div class="card">
+        <div class="card-title">System Configuration</div>
+        <div class="form-group">
+          <label>Similarity Threshold: <span id="threshold-val" class="slider-val">0.35</span></label>
+          <div class="slider-container">
+            <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.35" style="width: 100%;">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    async function fetchIdentities() {
+      try {
+        const res = await fetch('/api/identities');
+        const data = await res.json();
+        const listEl = document.getElementById('identity-list');
+        const countEl = document.getElementById('total-count');
+
+        if (data.success && data.identities) {
+          countEl.textContent = `${data.identities.length} Enrolled`;
+          if (data.identities.length === 0) {
+            listEl.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">No identities enrolled yet.</div>';
+            return;
+          }
+
+          listEl.innerHTML = data.identities.map(item => `
+            <div class="identity-item">
+              <div>
+                <span class="identity-name">${item.entity_name}</span>
+                <span class="identity-count">${item.count} vector(s)</span>
+              </div>
+              <button class="btn-delete" onclick="deleteIdentity('${item.entity_name}')">Delete</button>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.error('Failed to fetch identities:', err);
+      }
+    }
+
+    async function deleteIdentity(name) {
+      if (!confirm(`Are you sure you want to delete identity '${name}'?`)) return;
+      try {
+        const res = await fetch(`/api/identities/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          fetchIdentities();
+        }
+      } catch (err) {
+        console.error('Delete failed:', err);
+      }
+    }
+
+    document.getElementById('enroll-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('identity-name').value;
+      const fileInput = document.getElementById('image-file');
+
+      const formData = new FormData();
+      formData.append('identity', name);
+      if (fileInput.files.length > 0) {
+        formData.append('image', fileInput.files[0]);
+      }
+
+      try {
+        const res = await fetch('/api/enroll', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Successfully registered '${name}'!`);
+          document.getElementById('identity-name').value = '';
+          fileInput.value = '';
+          fetchIdentities();
+        } else {
+          alert(`Enrollment Error: ${data.error}`);
+        }
+      } catch (err) {
+        alert('Enrollment failed.');
+      }
+    });
+
+    const slider = document.getElementById('threshold-slider');
+    const sliderVal = document.getElementById('threshold-val');
+    slider.addEventListener('input', (e) => {
+      sliderVal.textContent = e.target.value;
+    });
+
+    slider.addEventListener('change', async (e) => {
+      const val = parseFloat(e.target.value);
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threshold: val })
+      });
+    });
+
+    // Initial load
+    fetchIdentities();
+  </script>
+</body>
+</html>

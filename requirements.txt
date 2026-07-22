@@ -1,0 +1,10 @@
+degirum>=0.15.0
+degirum_tools
+lancedb>=0.5.0
+opencv-python-headless
+numpy
+pillow
+pydantic
+flask
+requests
+matplotlib
