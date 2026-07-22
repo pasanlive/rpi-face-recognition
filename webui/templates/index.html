@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Raspberry Pi 5 Face Recognition Dashboard | Hailo-8 AI Hat+</title>
+  <title>Raspberry Pi 5 Behavioral & Face Recognition Dashboard | Hailo-8 AI Hat+</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -13,6 +13,7 @@
       --accent-color: #10b981;
       --accent-hover: #059669;
       --danger-color: #ef4444;
+      --warning-color: #f59e0b;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --input-bg: #1e293b;
@@ -163,7 +164,6 @@
     }
 
     .btn {
-      width: 100%;
       padding: 0.75rem;
       background-color: var(--accent-color);
       color: white;
@@ -172,6 +172,10 @@
       font-weight: 600;
       cursor: pointer;
       transition: background-color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
     }
 
     .btn:hover {
@@ -181,17 +185,26 @@
     .btn-secondary {
       background-color: var(--input-bg);
       border: 1px solid var(--card-border);
+      color: var(--text-main);
     }
 
     .btn-secondary:hover {
       background-color: var(--card-border);
     }
 
+    .btn-danger {
+      background-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+      background-color: #dc2626;
+    }
+
     .identity-list {
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
-      max-height: 300px;
+      max-height: 250px;
       overflow-y: auto;
     }
 
@@ -237,6 +250,84 @@
       font-weight: 600;
       min-width: 40px;
     }
+
+    /* Activity Log Table Styles */
+    .table-container {
+      overflow-x: auto;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--input-bg);
+      padding: 0.75rem 1rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--card-border);
+      vertical-align: middle;
+    }
+
+    .snapshot-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      background-color: #000;
+      border: 1px solid var(--card-border);
+    }
+
+    .badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+
+    .badge-drowsy {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid #ef4444;
+    }
+
+    .badge-loitering {
+      background-color: rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
+      border: 1px solid #f59e0b;
+    }
+
+    .badge-intrusion {
+      background-color: rgba(225, 29, 72, 0.2);
+      color: #fda4af;
+      border: 1px solid #e11d48;
+    }
+
+    .badge-recognized {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border: 1px solid #10b981;
+    }
+
+    .beh-details {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -244,28 +335,61 @@
   <header>
     <div class="logo-group">
       <span class="logo-badge">RPi5 + AI Hat+</span>
-      <h1>Face Recognition System (26 TOPS)</h1>
+      <h1>Face & Behavioral Recognition Dashboard (26 TOPS)</h1>
     </div>
     <div class="header-status">
       <div class="chip-badge">
         <span class="status-dot"></span>
-        Hailo-8 Accelerator Active
+        Hailo-8 NPU Engine Active
       </div>
     </div>
   </header>
 
   <main>
-    <!-- Left Column: Video Live Stream -->
+    <!-- Left Column: Video Live Stream & Activity Log -->
     <div class="left-col">
+      
+      <!-- Video Live Feed -->
       <div class="card">
         <div class="card-title">
-          <span>Live AI Camera Feed</span>
-          <span id="fps-counter" style="font-size: 0.85rem; color: var(--text-muted);">ArcFace + SCRFD</span>
+          <span>Real-Time AI Camera Feed</span>
+          <span id="fps-counter" style="font-size: 0.85rem; color: var(--text-muted);">ArcFace + YuNet + HeadPose + Drowsiness</span>
         </div>
         <div class="video-container">
-          <img src="/video_feed" alt="Live Face Recognition Stream">
+          <img src="/video_feed" alt="Live Face & Behavioral Recognition Stream">
         </div>
       </div>
+
+      <!-- Activity Log Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>System Activity & Event Logs</span>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" onclick="fetchActivityLogs()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Refresh</button>
+            <a href="/api/activity_logs/export" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none;">Export CSV</a>
+            <button class="btn btn-danger" onclick="clearActivityLogs()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Clear Logs</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Snapshot</th>
+                <th>Date & Time</th>
+                <th>Person Name</th>
+                <th>Event Type</th>
+                <th>Behavioral Details</th>
+              </tr>
+            </thead>
+            <tbody id="activity-log-body">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted);">Loading activity logs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
     <!-- Right Column: Enrollment, Enrolled List, Settings -->
@@ -283,9 +407,7 @@
             <label for="image-file">Photo Upload (Optional)</label>
             <input type="file" id="image-file" class="form-control" accept="image/*">
           </div>
-          <div style="display: flex; gap: 0.5rem;">
-            <button type="submit" class="btn">Register Identity</button>
-          </div>
+          <button type="submit" class="btn" style="width: 100%;">Register Identity</button>
         </form>
       </div>
 
@@ -304,9 +426,9 @@
       <div class="card">
         <div class="card-title">System Configuration</div>
         <div class="form-group">
-          <label>Similarity Threshold: <span id="threshold-val" class="slider-val">0.35</span></label>
+          <label>Similarity Threshold: <span id="threshold-val" class="slider-val">0.36</span></label>
           <div class="slider-container">
-            <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.35" style="width: 100%;">
+            <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.36" style="width: 100%;">
           </div>
         </div>
       </div>
@@ -357,6 +479,63 @@
       }
     }
 
+    async function fetchActivityLogs() {
+      try {
+        const res = await fetch('/api/activity_logs?limit=50');
+        const data = await res.json();
+        const tbody = document.getElementById('activity-log-body');
+
+        if (data.success && data.logs) {
+          if (data.logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No activity logs recorded yet.</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = data.logs.map(log => {
+            let badgeClass = 'badge-recognized';
+            if (log.event_type.includes('DROWSINESS')) badgeClass = 'badge-drowsy';
+            else if (log.event_type.includes('LOITERING')) badgeClass = 'badge-loitering';
+            else if (log.event_type.includes('INTRUSION')) badgeClass = 'badge-intrusion';
+
+            const imgTag = log.snapshot_filename
+              ? `<img src="/activity_logs/snapshots/${log.snapshot_filename}" class="snapshot-thumb" alt="Snapshot">`
+              : `<div class="snapshot-thumb" style="display:flex;align-items:center;justify-content:center;color:#64748b;font-size:0.7rem;">N/A</div>`;
+
+            const beh = log.behavior_data || {};
+            const detailsStr = `
+              Focus: ${beh.attention_score ?? 'N/A'}% | Pose: ${beh.posture ?? 'N/A'}<br>
+              Gaze: ${beh.gaze_direction ?? 'Center'} | Dwell: ${beh.dwell_time_sec ?? 0}s
+            `;
+
+            return `
+              <tr>
+                <td>${imgTag}</td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">${log.timestamp}</td>
+                <td style="font-weight: 600;">${log.person_name}</td>
+                <td><span class="badge ${badgeClass}">${log.event_type}</span></td>
+                <td class="beh-details">${detailsStr}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        console.error('Failed to fetch activity logs:', err);
+      }
+    }
+
+    async function clearActivityLogs() {
+      if (!confirm('Are you sure you want to clear all activity logs and snapshot images?')) return;
+      try {
+        const res = await fetch('/api/activity_logs', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          fetchActivityLogs();
+        }
+      } catch (err) {
+        console.error('Clear logs failed:', err);
+      }
+    }
+
     document.getElementById('enroll-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('identity-name').value;
@@ -399,8 +578,10 @@
       });
     });
 
-    // Initial load
+    // Initial load and periodic refresh
     fetchIdentities();
+    fetchActivityLogs();
+    setInterval(fetchActivityLogs, 4000); // Auto-refresh log table every 4s
   </script>
 </body>
 </html>

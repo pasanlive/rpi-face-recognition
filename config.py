@@ -12,6 +12,7 @@ class Config:
     # Vector Database Settings (LanceDB)
     DB_URI = os.getenv("FACE_APP_DB_URI", "./face_database")
     TABLE_NAME = "face"
+    LOG_TABLE_NAME = "activity_log"
     VECTOR_DIM = 512
     METRIC_TYPE = "cosine"
     SIMILARITY_THRESHOLD = float(os.getenv("FACE_APP_THRESHOLD", "0.36"))
@@ -21,3 +22,18 @@ class Config:
 
     # Camera & Video Source
     DEFAULT_CAMERA_SOURCE = int(os.getenv("FACE_APP_CAM_INDEX", "0"))
+
+    # Behavioral Detection Settings
+    ENABLE_FACIAL_BEHAVIOR = os.getenv("ENABLE_FACIAL_BEHAVIOR", "true").lower() == "true"
+    ENABLE_POSE_BEHAVIOR = os.getenv("ENABLE_POSE_BEHAVIOR", "true").lower() == "true"
+    ENABLE_ACTIVITY_LOGGING = os.getenv("ENABLE_ACTIVITY_LOGGING", "true").lower() == "true"
+
+    # Behavioral Thresholds
+    DROWSINESS_EAR_THRESHOLD = float(os.getenv("DROWSINESS_EAR_THRESHOLD", "0.22"))
+    DROWSINESS_TIME_SEC = float(os.getenv("DROWSINESS_TIME_SEC", "1.5"))
+    YAWN_MAR_THRESHOLD = float(os.getenv("YAWN_MAR_THRESHOLD", "0.55"))
+    LOITERING_TIME_LIMIT_SEC = float(os.getenv("LOITERING_TIME_LIMIT_SEC", "10.0"))
+
+    # Activity Logging & Snapshots
+    SNAPSHOT_DIR = os.getenv("SNAPSHOT_DIR", "./activity_logs/snapshots")
+    LOG_COOLDOWN_SEC = float(os.getenv("LOG_COOLDOWN_SEC", "5.0"))

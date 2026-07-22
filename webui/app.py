@@ -3,7 +3,7 @@ import cv2
 import time
 import logging
 import numpy as np
-from flask import Flask, render_template, Response, request, jsonify
+from flask import Flask, render_template, Response, request, jsonify, send_from_directory
 
 from config import Config
 from face_engine.detector import FaceDetector
@@ -11,7 +11,7 @@ from face_engine.embedder import FaceEmbedder
 from face_engine.alignment import align_and_crop
 from database.manager import FaceDatabaseManager
 from pipeline import FaceRecognitionPipeline
-
+from activity_logger.logger import ActivityLogger
 from camera_wrapper import CameraWrapper
 
 logger = logging.getLogger(__name__)
@@ -19,16 +19,16 @@ logger = logging.getLogger(__name__)
 def create_app():
     app = Flask(__name__, template_folder="templates")
     
-    # Initialize Core Components lazily or at start
-    logger.info("Initializing Face Recognition Pipeline for Web UI...")
+    # Initialize Core Components
+    logger.info("Initializing Face & Behavioral Recognition Pipeline for Web UI...")
     db_manager = FaceDatabaseManager()
+    activity_logger = ActivityLogger()
     
-    # Try initializing detector & embedder
     pipeline = None
     try:
-        pipeline = FaceRecognitionPipeline(db_manager=db_manager)
+        pipeline = FaceRecognitionPipeline(db_manager=db_manager, activity_logger=activity_logger)
     except Exception as e:
-        logger.warning(f"Could not initialize Hailo hardware pipeline immediately: {e}. App starting in manager mode.")
+        logger.warning(f"Could not initialize pipeline immediately: {e}. App starting in manager mode.")
 
     # Global State
     current_camera_index = Config.DEFAULT_CAMERA_SOURCE
@@ -72,7 +72,7 @@ def create_app():
                 time.sleep(0.5)
                 continue
 
-            # Run face recognition pipeline if initialized
+            # Run face recognition & behavioral pipeline
             if pipeline:
                 try:
                     annotated_frame, _ = pipeline.process_frame(frame, threshold=current_threshold)
@@ -167,6 +167,42 @@ def create_app():
             logger.error(f"Error in /api/enroll: {e}", exc_info=True)
             return jsonify({"success": False, "error": str(e)}), 500
 
+    @app.route('/api/activity_logs', methods=['GET', 'DELETE'])
+    def handle_activity_logs():
+        try:
+            if request.method == 'DELETE':
+                success = activity_logger.clear_logs()
+                return jsonify({"success": success})
+
+            limit = int(request.args.get('limit', 100))
+            offset = int(request.args.get('offset', 0))
+            logs = activity_logger.get_logs(limit=limit, offset=offset)
+            return jsonify({"success": True, "logs": logs})
+        except Exception as e:
+            logger.error(f"Error in /api/activity_logs: {e}", exc_info=True)
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/activity_logs/export', methods=['GET'])
+    def export_activity_logs():
+        try:
+            csv_data = activity_logger.export_csv()
+            return Response(
+                csv_data,
+                mimetype="text/csv",
+                headers={"Content-disposition": "attachment; filename=activity_logs.csv"}
+            )
+        except Exception as e:
+            logger.error(f"Error exporting activity logs: {e}", exc_info=True)
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/activity_logs/snapshots/<filename>')
+    def serve_snapshot(filename):
+        try:
+            return send_from_directory(os.path.abspath(Config.SNAPSHOT_DIR), filename)
+        except Exception as e:
+            logger.error(f"Error serving snapshot file '{filename}': {e}")
+            return jsonify({"error": "File not found"}), 404
+
     @app.route('/api/settings', methods=['GET', 'POST'])
     def settings():
         nonlocal current_threshold, current_camera_index, camera_cap
@@ -189,8 +225,9 @@ def create_app():
                 "threshold": current_threshold,
                 "camera_index": current_camera_index,
                 "target_device": Config.TARGET_DEVICE,
-                "detection_model": Config.DEFAULT_DETECTION_MODEL,
-                "embedding_model": Config.EMBEDDING_MODEL
+                "enable_facial_behavior": Config.ENABLE_FACIAL_BEHAVIOR,
+                "enable_pose_behavior": Config.ENABLE_POSE_BEHAVIOR,
+                "enable_activity_logging": Config.ENABLE_ACTIVITY_LOGGING
             })
         except Exception as e:
             logger.error(f"Error in /api/settings: {e}", exc_info=True)
@@ -200,4 +237,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000)
