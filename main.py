@@ -144,11 +144,18 @@ def cmd_set_token(args):
     except Exception as e:
         logger.error(f"Failed to set degirum token: {e}")
 
+def cmd_setup_models(args):
+    from setup_models import setup
+    setup()
+
 def main():
     parser = argparse.ArgumentParser(description="Raspberry Pi 5 (AI Hat+ 26 TOPS) Face Recognition App")
     parser.add_argument("--token", default=Config.TOKEN, help="DeGirum cloud token")
     parser.add_argument("--zoo-url", default=Config.ZOO_URL, help="Model zoo URL or local directory path")
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
+
+    # Subcommand: setup-models
+    parser_setup = subparsers.add_parser("setup-models", help="Download/symlink local Hailo models for offline execution")
 
     # Subcommand: set-token
     parser_set_token = subparsers.add_parser("set-token", help="Save DeGirum cloud token to system license file")
@@ -183,7 +190,9 @@ def main():
     if args.zoo_url:
         Config.ZOO_URL = args.zoo_url
 
-    if args.command == "set-token":
+    if args.command == "setup-models":
+        cmd_setup_models(args)
+    elif args.command == "set-token":
         cmd_set_token(args)
     elif args.command == "run":
         cmd_run(args)
