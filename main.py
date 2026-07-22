@@ -129,6 +129,15 @@ def cmd_delete(args):
     else:
         logger.error(f"Failed to delete records for identity '{name}'.")
 
+def cmd_web(args):
+    """
+    Launch Flask Web UI Dashboard.
+    """
+    from webui.app import create_app
+    app = create_app()
+    logger.info(f"Launching Web UI Dashboard at http://{args.host}:{args.port}...")
+    app.run(host=args.host, port=args.port, debug=False)
+
 def cmd_set_token(args):
     """
     Save DeGirum token locally to user config directory.
