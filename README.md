@@ -64,6 +64,13 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### 4. (Optional & Recommended) Download Local Models for Offline Execution
+To run offline without requiring a DeGirum cloud token, clone the model repository from `DeGirum/hailo_examples`:
+```bash
+git clone https://github.com/DeGirum/hailo_examples.git ../hailo_examples
+```
+*The app automatically detects `./models`, `../hailo_examples/models`, or `~/hailo_examples/models` and runs 100% locally on the Hailo-8 NPU without cloud authentication.*
+
 ---
 
 ## 💻 Usage Guide

@@ -5,7 +5,7 @@ class Config:
     TARGET_DEVICE = os.getenv("FACE_APP_TARGET", "hailo8")
     INFERENCE_HOST = os.getenv("FACE_APP_HOST", "@local") # Use @cloud for cloud fallback
     ZOO_URL = os.getenv("FACE_APP_ZOO_URL", "degirum/models_hailort")
-    TOKEN = os.getenv("FACE_APP_TOKEN", "") # Degirum cloud token if needed
+    TOKEN = os.getenv("FACE_APP_TOKEN", os.getenv("DEGIRUM_CLOUD_TOKEN", ""))
 
     # Model Selection (defaults tailored for Hailo-8 26 TOPS)
     DETECTION_MODELS = {

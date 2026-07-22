@@ -36,10 +36,29 @@ class FaceEmbedder:
             logger.warning("DeGirum PySDK is not installed. FaceEmbedder running in offline/mock mode.")
             return
 
+        if self.token:
+            os.environ["DEGIRUM_CLOUD_TOKEN"] = self.token
+            try:
+                if hasattr(dg, "set_token"):
+                    dg.set_token(self.token)
+            except Exception:
+                pass
+
+        possible_local_paths = [
+            self.zoo_url,
+            "./models",
+            "../models",
+            "../hailo_examples/models",
+            os.path.expanduser("~/hailo_examples/models"),
+            os.path.expanduser("~/Documents/hailo_examples/models")
+        ]
         zoo_url = self.zoo_url
-        if zoo_url.startswith("degirum") and os.path.exists("./models"):
-            logger.info("Found local './models' directory. Attempting local model loading...")
-            zoo_url = "./models"
+        if zoo_url.startswith("degirum"):
+            for candidate in possible_local_paths:
+                if not candidate.startswith("degirum") and os.path.exists(candidate):
+                    logger.info(f"Found local model zoo directory at '{candidate}'. Using local models.")
+                    zoo_url = candidate
+                    break
 
         logger.info(f"Loading Face Embedding model '{self.model_name}' on '{self.inference_host_address}' (zoo: '{zoo_url}')...")
         try:
@@ -55,16 +74,15 @@ class FaceEmbedder:
             logger.info("Face Embedding model loaded successfully.")
         except Exception as e:
             err_msg = str(e)
-            if "Authorization failed" in err_msg or "connect to server hub.degirum.com" in err_msg:
+            if "Authorization failed" in err_msg or "Token is not installed" in err_msg or "connect to server hub.degirum.com" in err_msg:
                 logger.error(
                     f"\n{'='*60}\n"
-                    f"DeGirum AI Hub Authorization Failed when loading '{self.model_name}'.\n\n"
+                    f"DeGirum PySDK License Token Missing for '{self.model_name}'.\n\n"
                     f"TO FIX THIS:\n"
-                    f"Option A (Cloud Zoo): Provide your free DeGirum token:\n"
-                    f"   export FACE_APP_TOKEN='your_token_here'\n"
-                    f"   (Get free token at https://cs.degirum.com)\n\n"
-                    f"Option B (Local Zoo): Download models to a local directory and set:\n"
-                    f"   export FACE_APP_ZOO_URL='/path/to/models'\n"
+                    f"1) Register your free DeGirum cloud token on this system:\n"
+                    f"   export DEGIRUM_CLOUD_TOKEN='your_token_here'\n"
+                    f"   OR run: python3 main.py set-token 'your_token_here'\n\n"
+                    f"Get a free token at: https://cs.degirum.com\n"
                     f"{'='*60}\n"
                 )
             else:

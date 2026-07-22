@@ -129,20 +129,33 @@ def cmd_delete(args):
     else:
         logger.error(f"Failed to delete records for identity '{name}'.")
 
-def cmd_web(args):
+def cmd_set_token(args):
     """
-    Launch Flask Web UI Dashboard.
+    Save DeGirum token locally to user config directory.
     """
-    from webui.app import create_app
-    app = create_app()
-    logger.info(f"Launching Web UI Dashboard at http://{args.host}:{args.port}...")
-    app.run(host=args.host, port=args.port, debug=False)
+    token_str = args.token_value.strip()
+    if not token_str:
+        logger.error("Token value cannot be empty.")
+        return
+
+    os.environ["DEGIRUM_CLOUD_TOKEN"] = token_str
+    try:
+        import degirum as dg
+        if hasattr(dg, "set_token"):
+            dg.set_token(token_str)
+        logger.info(f"Successfully registered DeGirum token on system ({token_str[:4]}...{token_str[-4:] if len(token_str) > 8 else ''}).")
+    except Exception as e:
+        logger.error(f"Failed to set degirum token: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Raspberry Pi 5 (AI Hat+ 26 TOPS) Face Recognition App")
     parser.add_argument("--token", default=Config.TOKEN, help="DeGirum cloud token")
     parser.add_argument("--zoo-url", default=Config.ZOO_URL, help="Model zoo URL or local directory path")
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
+
+    # Subcommand: set-token
+    parser_set_token = subparsers.add_parser("set-token", help="Save DeGirum cloud token to system license file")
+    parser_set_token.add_argument("token_value", help="Your free DeGirum token from https://cs.degirum.com")
 
     # Subcommand: run
     parser_run = subparsers.add_parser("run", help="Run live camera/video face recognition")
@@ -173,7 +186,9 @@ def main():
     if args.zoo_url:
         Config.ZOO_URL = args.zoo_url
 
-    if args.command == "run":
+    if args.command == "set-token":
+        cmd_set_token(args)
+    elif args.command == "run":
         cmd_run(args)
     elif args.command == "enroll":
         cmd_enroll(args)
