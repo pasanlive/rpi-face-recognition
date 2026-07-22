@@ -1,9 +1,16 @@
+import sys
+import os
 import cv2
 import logging
 import numpy as np
 from typing import Tuple, Optional, Union
 
 logger = logging.getLogger(__name__)
+
+# Add Raspberry Pi system python package path for virtual environments (venv)
+for sys_path in ["/usr/lib/python3/dist-packages", "/usr/lib/python3.11/dist-packages", "/usr/lib/python3.13/dist-packages"]:
+    if os.path.exists(sys_path) and sys_path not in sys.path:
+        sys.path.append(sys_path)
 
 try:
     from picamera2 import Picamera2
@@ -54,8 +61,16 @@ class CameraWrapper:
         logger.info(f"Opening OpenCV VideoCapture source '{idx}'...")
         if isinstance(idx, int):
             self.cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
+            if self.cap and self.cap.isOpened():
+                self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             if not self.cap or not self.cap.isOpened():
                 self.cap = cv2.VideoCapture(idx)
+                if self.cap and self.cap.isOpened():
+                    self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+                    self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                    self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         else:
             self.cap = cv2.VideoCapture(idx)
 

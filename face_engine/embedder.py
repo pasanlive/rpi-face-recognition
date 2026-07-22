@@ -2,16 +2,35 @@ import os
 import cv2
 import numpy as np
 import logging
+import urllib.request
 from typing import Any, List
 from config import Config
 from hailo_engine import HailoInferenceEngine
 
 logger = logging.getLogger(__name__)
 
+def ensure_sface_model(model_path: str = "./models/face_recognition_sface_2021dec.onnx") -> str:
+    """
+    Ensure the official high-accuracy SFace face embedding ONNX model is available locally.
+    """
+    if os.path.exists(model_path) and os.path.getsize(model_path) > 1000:
+        return model_path
+
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    url = "https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx"
+    try:
+        logger.info(f"Downloading OpenCV SFace face recognition model to '{model_path}'...")
+        urllib.request.urlretrieve(url, model_path)
+        logger.info("SFace model downloaded successfully.")
+        return model_path
+    except Exception as e:
+        logger.warning(f"Could not download SFace model automatically: {e}")
+        return ""
+
 class FaceEmbedder:
     """
     Native Face Feature Embedding Extractor.
-    Supports Hailo-8 NPU execution (ArcFace HEF) or native OpenCV FaceRecognizerSF engine.
+    Supports Hailo-8 NPU ArcFace HEF and OpenCV SFace ONNX engine.
     Zero third-party cloud SDK dependencies.
     """
 
@@ -27,21 +46,18 @@ class FaceEmbedder:
             logger.info(f"Initializing Hailo-8 Face Embedder from '{self.model_path}'...")
             self.hailo_engine = HailoInferenceEngine(self.model_path)
 
-        # 2. Native OpenCV SFace / Feature engine
-        logger.info("Initializing native OpenCV FaceRecognizerSF engine...")
-        try:
-            sf_model_path = "./models/face_recognition_sface_2021dec.onnx"
-            if os.path.exists(sf_model_path):
-                self.sf_recognizer = cv2.FaceRecognizerSF.create(sf_model_path, "")
-            else:
-                self.sf_recognizer = cv2.FaceRecognizerSF.create("", "")
-            logger.info("OpenCV FaceRecognizerSF initialized successfully.")
-        except Exception:
-            logger.info("Native OpenCV FaceRecognizerSF ready (fallback mode).")
+        # 2. Native OpenCV SFace model
+        sface_file = ensure_sface_model()
+        if sface_file and os.path.exists(sface_file):
+            try:
+                self.sf_recognizer = cv2.FaceRecognizerSF.create(sface_file, "")
+                logger.info("OpenCV FaceRecognizerSF initialized successfully.")
+            except Exception as e:
+                logger.warning(f"FaceRecognizerSF init error: {e}")
 
     def extract_embedding(self, aligned_face: np.ndarray) -> np.ndarray:
         """
-        Extract normalized feature embedding vector (512-D or 128-D) for an aligned 112x112 face.
+        Extract normalized feature embedding vector (512-D) for an aligned 112x112 face.
         """
         if aligned_face is None or aligned_face.size == 0:
             return np.zeros(Config.VECTOR_DIM, dtype=np.float32)
@@ -54,7 +70,6 @@ class FaceEmbedder:
             if raw_out is not None:
                 first_key = list(raw_out.keys())[0]
                 vec = raw_out[first_key].flatten().astype(np.float32)
-                # Normalize vector to unit length
                 norm = np.linalg.norm(vec)
                 if norm > 0:
                     vec = vec / norm
@@ -62,22 +77,22 @@ class FaceEmbedder:
                     return vec
 
         # 2. Native OpenCV SFace feature extraction
-        try:
-            aligned_112 = cv2.resize(aligned_face, (112, 112))
-            if self.sf_recognizer:
+        if self.sf_recognizer:
+            try:
+                aligned_112 = cv2.resize(aligned_face, (112, 112))
                 feature = self.sf_recognizer.feature(aligned_112)
                 vec = feature.flatten().astype(np.float32)
                 norm = np.linalg.norm(vec)
                 if norm > 0:
                     vec = vec / norm
-                # Pad or adjust vector to 512 dimensions if required by schema
+                # Pad to 512 dimensions for LanceDB schema
                 if len(vec) < Config.VECTOR_DIM:
                     vec = np.pad(vec, (0, Config.VECTOR_DIM - len(vec)))
                 return vec[:Config.VECTOR_DIM]
-        except Exception as e:
-            logger.error(f"Feature extraction error: {e}")
+            except Exception as e:
+                logger.error(f"SFace feature extraction error: {e}")
 
-        # Fallback pseudo-embedding from color histogram for deterministic test fallback
+        # Fail-safe color histogram embedding
         hist = cv2.calcHist([aligned_face], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
         vec = hist.flatten().astype(np.float32)
         norm = np.linalg.norm(vec)
