@@ -12,7 +12,6 @@ from database.manager import FaceDatabaseManager
 from face_engine.detector import FaceDetector
 from face_engine.embedder import FaceEmbedder
 from pipeline import FaceRecognitionPipeline
-
 from camera_wrapper import CameraWrapper
 
 def cmd_run(args):
@@ -23,7 +22,7 @@ def cmd_run(args):
     if source.isdigit():
         source = int(source)
 
-    logger.info(f"Starting Face Recognition Pipeline on video source '{source}'...")
+    logger.info(f"Starting Native Face Recognition Pipeline on video source '{source}'...")
     db_manager = FaceDatabaseManager()
     pipeline = FaceRecognitionPipeline(db_manager=db_manager)
 
@@ -32,7 +31,7 @@ def cmd_run(args):
         logger.error(f"Cannot open video source: {source}")
         return
 
-    window_name = "Raspberry Pi 5 - Hailo-8 Face Recognition"
+    window_name = "Raspberry Pi 5 - Native Hailo-8 Face Recognition"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
 
     try:
@@ -68,7 +67,6 @@ def cmd_enroll(args):
     elif os.path.isfile(input_path):
         identity = args.name
         if not identity:
-            # Fallback to filename prefix if name not explicitly passed
             identity = os.path.splitext(os.path.basename(input_path))[0].split('_')[0].capitalize()
         
         logger.info(f"Enrolling image '{input_path}' for identity '{identity}'...")
@@ -126,40 +124,9 @@ def cmd_web(args):
     logger.info(f"Launching Web UI Dashboard at http://{args.host}:{args.port}...")
     app.run(host=args.host, port=args.port, debug=False)
 
-def cmd_set_token(args):
-    """
-    Save DeGirum token locally to user config directory.
-    """
-    token_str = args.token_value.strip()
-    if not token_str:
-        logger.error("Token value cannot be empty.")
-        return
-
-    os.environ["DEGIRUM_CLOUD_TOKEN"] = token_str
-    try:
-        import degirum as dg
-        if hasattr(dg, "set_token"):
-            dg.set_token(token_str)
-        logger.info(f"Successfully registered DeGirum token on system ({token_str[:4]}...{token_str[-4:] if len(token_str) > 8 else ''}).")
-    except Exception as e:
-        logger.error(f"Failed to set degirum token: {e}")
-
-def cmd_setup_models(args):
-    from setup_models import setup
-    setup()
-
 def main():
-    parser = argparse.ArgumentParser(description="Raspberry Pi 5 (AI Hat+ 26 TOPS) Face Recognition App")
-    parser.add_argument("--token", default=Config.TOKEN, help="DeGirum cloud token")
-    parser.add_argument("--zoo-url", default=Config.ZOO_URL, help="Model zoo URL or local directory path")
+    parser = argparse.ArgumentParser(description="Raspberry Pi 5 Native Hailo-8 Face Recognition App")
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
-
-    # Subcommand: setup-models
-    parser_setup = subparsers.add_parser("setup-models", help="Download/symlink local Hailo models for offline execution")
-
-    # Subcommand: set-token
-    parser_set_token = subparsers.add_parser("set-token", help="Save DeGirum cloud token to system license file")
-    parser_set_token.add_argument("token_value", help="Your free DeGirum token from https://cs.degirum.com")
 
     # Subcommand: run
     parser_run = subparsers.add_parser("run", help="Run live camera/video face recognition")
@@ -185,16 +152,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.token:
-        Config.TOKEN = args.token
-    if args.zoo_url:
-        Config.ZOO_URL = args.zoo_url
-
-    if args.command == "setup-models":
-        cmd_setup_models(args)
-    elif args.command == "set-token":
-        cmd_set_token(args)
-    elif args.command == "run":
+    if args.command == "run":
         cmd_run(args)
     elif args.command == "enroll":
         cmd_enroll(args)
