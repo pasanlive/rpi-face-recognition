@@ -36,19 +36,41 @@ def create_app():
     def get_camera():
         nonlocal camera_cap
         if camera_cap is None or not camera_cap.isOpened():
-            camera_cap = cv2.VideoCapture(current_camera_index)
+            logger.info(f"Opening camera source '{current_camera_index}'...")
+            if isinstance(current_camera_index, int):
+                camera_cap = cv2.VideoCapture(current_camera_index, cv2.CAP_V4L2)
+                if not camera_cap.isOpened():
+                    camera_cap = cv2.VideoCapture(current_camera_index)
+            else:
+                camera_cap = cv2.VideoCapture(current_camera_index)
+
+            if camera_cap and camera_cap.isOpened():
+                camera_cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                camera_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         return camera_cap
 
     def generate_frames():
         nonlocal camera_cap, pipeline, current_threshold
-        cap = get_camera()
 
         while True:
-            success, frame = cap.read()
-            if not success:
-                # If frame read fails, generate a fallback black frame with warning
+            try:
+                cap = get_camera()
+                if not cap or not cap.isOpened():
+                    success = False
+                    frame = None
+                else:
+                    success, frame = cap.read()
+            except (cv2.error, Exception) as e:
+                logger.error(f"Error reading camera frame: {e}")
+                if camera_cap:
+                    camera_cap.release()
+                    camera_cap = None
+                success = False
+                frame = None
+
+            if not success or frame is None or frame.size == 0:
                 blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-                cv2.putText(blank_frame, "Camera Stream Unavailable", (150, 240),
+                cv2.putText(blank_frame, "Camera Stream Unavailable", (120, 240),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
                 ret, buffer = cv2.imencode('.jpg', blank_frame)
                 frame_bytes = buffer.tobytes()

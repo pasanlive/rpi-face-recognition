@@ -25,18 +25,32 @@ def cmd_run(args):
     db_manager = FaceDatabaseManager()
     pipeline = FaceRecognitionPipeline(db_manager=db_manager)
 
-    cap = cv2.VideoCapture(source)
+    if isinstance(source, int):
+        cap = cv2.VideoCapture(source, cv2.CAP_V4L2)
+        if not cap.isOpened():
+            cap = cv2.VideoCapture(source)
+    else:
+        cap = cv2.VideoCapture(source)
+
     if not cap.isOpened():
         logger.error(f"Cannot open video source: {source}")
         return
+
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     window_name = "Raspberry Pi 5 - Hailo-8 Face Recognition"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
 
     try:
         while True:
-            ret, frame = cap.read()
-            if not ret:
+            try:
+                ret, frame = cap.read()
+            except (cv2.error, Exception) as e:
+                logger.error(f"Error reading frame from source '{source}': {e}")
+                break
+
+            if not ret or frame is None or frame.size == 0:
                 logger.info("End of video stream or failed to read frame.")
                 break
 
