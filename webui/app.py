@@ -1,8 +1,11 @@
 import os
+import sys
 import cv2
 import time
 import logging
 import numpy as np
+# Ensure project root is in PYTHONPATH for package imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from flask import Flask, render_template, Response, request, jsonify, send_from_directory
 from behavior_engine import security_zone
 
@@ -25,6 +28,11 @@ def create_app():
     db_manager = FaceDatabaseManager()
     activity_logger = ActivityLogger()
     
+    # Global State
+    current_camera_index = Config.DEFAULT_CAMERA_SOURCE
+    current_threshold = Config.SIMILARITY_THRESHOLD
+    camera_cap = None
+    
     pipeline = None
     # Define a getter for the current camera index to be used by the pipeline and behavior analyzer
     def get_current_camera_index():
@@ -37,11 +45,6 @@ def create_app():
         )
     except Exception as e:
         logger.warning(f"Could not initialize pipeline immediately: {e}. App starting in manager mode.")
-
-    # Global State
-    current_camera_index = Config.DEFAULT_CAMERA_SOURCE
-    current_threshold = Config.SIMILARITY_THRESHOLD
-    camera_cap = None
 
     def get_camera():
         nonlocal camera_cap
@@ -240,6 +243,36 @@ def create_app():
         except Exception as e:
             logger.error(f"Error saving security zone: {e}", exc_info=True)
             # Modal alert on save failure
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    # Settings API (restored)
+    @app.route('/api/settings', methods=['GET', 'POST'])
+    def settings():
+        nonlocal current_threshold, current_camera_index, camera_cap
+        try:
+            if request.method == 'POST':
+                data = request.json or {}
+                if 'threshold' in data:
+                    current_threshold = float(data['threshold'])
+                if 'camera_index' in data:
+                    new_idx = int(data['camera_index'])
+                    if new_idx != current_camera_index:
+                        current_camera_index = new_idx
+                        if camera_cap:
+                            camera_cap.release()
+                            camera_cap = None
+                return jsonify({"success": True, "threshold": current_threshold, "camera_index": current_camera_index})
+            return jsonify({
+                "success": True,
+                "threshold": current_threshold,
+                "camera_index": current_camera_index,
+                "target_device": Config.TARGET_DEVICE,
+                "enable_facial_behavior": Config.ENABLE_FACIAL_BEHAVIOR,
+                "enable_pose_behavior": Config.ENABLE_POSE_BEHAVIOR,
+                "enable_activity_logging": Config.ENABLE_ACTIVITY_LOGGING
+            })
+        except Exception as e:
+            logger.error(f"Error in /api/settings: {e}", exc_info=True)
             return jsonify({"success": False, "error": str(e)}), 500
 
     return app
