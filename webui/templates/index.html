@@ -90,19 +90,13 @@
 
     main {
       padding: 2rem;
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
       width: 100%;
-      display: grid;
-      grid-template-columns: 1fr 400px;
-      gap: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
       flex: 1;
-    }
-
-    @media (max-width: 1024px) {
-      main {
-        grid-template-columns: 1fr;
-      }
     }
 
     .card {
@@ -441,120 +435,73 @@
   </header>
 
   <main>
-    <!-- Left Column: Video Live Stream & Activity Log -->
-    <div class="left-col">
-      
-      <!-- Video Live Feed -->
-      <div class="card">
-        <div class="card-title">
-          <span>Real-Time AI Camera Feed</span>
-          <span id="fps-counter" style="font-size: 0.85rem; color: var(--text-muted);">ArcFace + YuNet + HeadPose + Drowsiness</span>
-        </div>
-        <div class="video-container">
-          <img src="/video_feed" alt="Live Face & Behavioral Recognition Stream">
-        </div>
-        <div style="margin-top: 12px; display: flex; gap: 0.75rem;">
-          <button class="btn" onclick="openStreamModal()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-            View Fullscreen
-          </button>
-          <button class="btn btn-secondary" onclick="openSecurityZoneModal()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Configure Security Zone
-          </button>
-        </div>
+    <!-- Real-Time AI Camera Feed Card (Full Width) -->
+    <div class="card">
+      <div class="card-title">
+        <span>Real-Time AI Camera Feed</span>
+        <span id="fps-counter" style="font-size: 0.85rem; color: var(--text-muted);">ArcFace + YuNet + HeadPose + Drowsiness</span>
       </div>
-
-      <!-- Activity Log Card -->
-      <div class="card">
-        <div class="card-title">
-          <span>System Activity & Event Logs</span>
-          <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-secondary" onclick="fetchActivityLogs()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Refresh</button>
-            <a href="/api/activity_logs/export" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none;">Export CSV</a>
-            <button class="btn btn-danger" onclick="clearActivityLogs()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Clear Logs</button>
-          </div>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Snapshot</th>
-                <th>Date & Time</th>
-                <th>Person Name</th>
-                <th>Event Type</th>
-                <th>Behavioral Details</th>
-              </tr>
-            </thead>
-            <tbody id="activity-log-body">
-              <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-muted);">Loading activity logs...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="video-container">
+        <img src="/video_feed" alt="Live Face & Behavioral Recognition Stream">
       </div>
-
+      <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+        <button class="btn" onclick="openStreamModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          View Fullscreen
+        </button>
+        <button class="btn btn-secondary" onclick="openSecurityZoneModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Configure Security Zone
+        </button>
+        <button class="btn btn-secondary" onclick="openEnrollModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Enroll New Identity
+        </button>
+        <button class="btn btn-secondary" onclick="openIdentitiesModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Enrolled Identities
+        </button>
+        <button class="btn btn-secondary" onclick="openSettingsModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          System Configuration
+        </button>
+      </div>
     </div>
 
-    <!-- Right Column: Enrollment, Enrolled List, Settings -->
-    <div class="right-col">
-      
-      <!-- Enrollment Card -->
-      <div class="card">
-        <div class="card-title">Enroll New Identity</div>
-        <form id="enroll-form">
-          <div class="form-group">
-            <label for="identity-name">Person Name</label>
-            <input type="text" id="identity-name" class="form-control" placeholder="e.g. Alice, Bob" required>
-          </div>
-          <div class="form-group">
-            <label for="image-file">Photo Upload (Optional)</label>
-            <input type="file" id="image-file" class="form-control" accept="image/*">
-          </div>
-          <button type="submit" class="btn" style="width: 100%;">Register Identity</button>
-        </form>
-      </div>
-
-      <!-- Database Enrolled Cards -->
-      <div class="card">
-        <div class="card-title">
-          Enrolled Identities
-          <span id="total-count" class="identity-count">0 Enrolled</span>
-        </div>
-        <div class="identity-list" id="identity-list">
-          <div style="color: var(--text-muted); font-size: 0.9rem;">Loading identities...</div>
+    <!-- System Activity & Event Logs Card (Full Width) -->
+    <div class="card">
+      <div class="card-title">
+        <span>System Activity & Event Logs</span>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" onclick="fetchActivityLogs()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Refresh</button>
+          <a href="/api/activity_logs/export" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none;">Export CSV</a>
+          <button class="btn btn-danger" onclick="clearActivityLogs()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Clear Logs</button>
         </div>
       </div>
-
-      <!-- System Settings -->
-      <div class="card">
-        <div class="card-title">System Configuration</div>
-        <div class="form-group">
-          <label>Similarity Threshold: <span id="threshold-val" class="slider-val">0.36</span></label>
-          <div class="slider-container">
-            <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.36" style="width: 100%;">
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-top: 1.25rem;">
-          <label for="camera-source-input">Video Input Source (Local Cam / RTSP URL)</label>
-          <div style="display: flex; gap: 0.5rem;">
-            <input type="text" id="camera-source-input" class="form-control" placeholder="e.g. 0 or rtsp://192.168.1.100:554/live">
-            <button type="button" class="btn btn-secondary" onclick="applyCameraSource()" style="white-space: nowrap; font-size: 0.85rem;">Apply</button>
-          </div>
-          <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.35rem; line-height: 1.3;">
-            Enter index (0, 1) or RTSP stream URL (rtsp://user:pass@ip:554/stream)
-          </span>
-        </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Snapshot</th>
+              <th>Date & Time</th>
+              <th>Person Name</th>
+              <th>Event Type</th>
+              <th>Behavioral Details</th>
+            </tr>
+          </thead>
+          <tbody id="activity-log-body">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-muted);">Loading activity logs...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-
     </div>
   </main>
 
   <!-- View Fullscreen Modal Dialog -->
   <div id="stream-modal" class="modal" onclick="closeStreamModal(event)">
-    <div class="modal-content" style="max-width: 960px;" onclick="event.stopPropagation()">
+    <div class="modal-content" style="max-width: 1000px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>
           <span class="status-dot"></span>
@@ -563,7 +510,7 @@
         <button class="modal-close-btn" onclick="closeStreamModal()" aria-label="Close modal">&times;</button>
       </div>
       <div class="modal-body" style="margin-bottom: 0;">
-        <div class="video-container" style="aspect-ratio: 16 / 9; max-height: 70vh;">
+        <div class="video-container" style="aspect-ratio: 16 / 9; max-height: 75vh;">
           <img id="fullscreen-video-feed" src="/video_feed" alt="Live Camera Stream Fullscreen">
         </div>
       </div>
@@ -586,7 +533,7 @@
       </div>
       <div class="modal-body">
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.5;">
-          Click inside the 640×480 frame boundary to place vertices defining the restricted intrusion detection zone. Minimum 3 points required.
+          Click inside the frame boundary to place vertices defining the restricted intrusion detection zone. Minimum 3 points required.
         </p>
         <div style="position: relative; width: 100%; aspect-ratio: 4 / 3; background: #000; border: 1px solid var(--card-border); border-radius: 8px; overflow: hidden;">
           <canvas id="security-zone-canvas" width="640" height="480" style="width: 100%; height: 100%; cursor: crosshair; display: block;"></canvas>
@@ -597,6 +544,96 @@
         <button class="btn btn-secondary" onclick="resetZonePoints()" style="margin-right: auto;">Clear Points</button>
         <button class="btn btn-secondary" onclick="closeSecurityZoneModal()">Cancel</button>
         <button class="btn" onclick="saveSecurityZone()">Save Boundary</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enroll New Identity Modal Dialog -->
+  <div id="enroll-modal" class="modal" onclick="closeEnrollModal(event)">
+    <div class="modal-content" style="max-width: 540px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Enroll New Identity
+        </h3>
+        <button class="modal-close-btn" onclick="closeEnrollModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="enroll-form">
+          <div class="form-group">
+            <label for="identity-name">Person Name</label>
+            <input type="text" id="identity-name" class="form-control" placeholder="e.g. Alice, Bob" required>
+          </div>
+          <div class="form-group">
+            <label for="image-file">Photo Upload (Optional)</label>
+            <input type="file" id="image-file" class="form-control" accept="image/*">
+            <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.35rem; line-height: 1.3;">
+              Upload a clear single-face image file, or leave empty to capture directly from live camera feed.
+            </span>
+          </div>
+          <div class="modal-footer" style="padding-bottom: 0; padding-top: 1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeEnrollModal()">Cancel</button>
+            <button type="submit" class="btn">Register Identity</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enrolled Identities Modal Dialog -->
+  <div id="identities-modal" class="modal" onclick="closeIdentitiesModal(event)">
+    <div class="modal-content" style="max-width: 600px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Enrolled Identities
+          <span id="total-count" class="identity-count">0 Enrolled</span>
+        </h3>
+        <button class="modal-close-btn" onclick="closeIdentitiesModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="identity-list" id="identity-list" style="max-height: 380px;">
+          <div style="color: var(--text-muted); font-size: 0.9rem;">Loading identities...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="fetchIdentities()">Refresh</button>
+        <button class="btn btn-secondary" onclick="closeIdentitiesModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Configuration Modal Dialog -->
+  <div id="settings-modal" class="modal" onclick="closeSettingsModal(event)">
+    <div class="modal-content" style="max-width: 580px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          System Configuration
+        </h3>
+        <button class="modal-close-btn" onclick="closeSettingsModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Similarity Threshold: <span id="threshold-val" class="slider-val">0.36</span></label>
+          <div class="slider-container">
+            <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.36" style="width: 100%;">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <label for="camera-source-input">Video Input Source (Local Cam / RTSP URL)</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="camera-source-input" class="form-control" placeholder="e.g. 0 or rtsp://192.168.1.100:554/live">
+            <button type="button" class="btn btn-secondary" onclick="applyCameraSource()" style="white-space: nowrap; font-size: 0.85rem;">Apply</button>
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.35rem; line-height: 1.3;">
+            Enter index (0, 1) or RTSP stream URL (rtsp://user:pass@ip:554/stream)
+          </span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSettingsModal()">Close</button>
       </div>
     </div>
   </div>
@@ -726,11 +763,11 @@
         const res = await fetch('/api/enroll', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
-          alert(`Successfully registered '${name}'!`);
+          showToast(`Successfully registered '${name}'!`);
           document.getElementById('identity-name').value = '';
           fileInput.value = '';
           fetchIdentities();
-          showToast('Identity registered');
+          closeEnrollModal();
         } else {
           alert(`Enrollment Error: ${data.error}`);
         }
@@ -795,14 +832,42 @@
     fetchActivityLogs();
     setInterval(fetchActivityLogs, 4000); // Auto-refresh log table every 4s
 
-    // Fullscreen Stream Modal Functions
+    // Modal Control Functions
     function openStreamModal() {
       document.getElementById('stream-modal').style.display = 'flex';
     }
-
     function closeStreamModal(event) {
-      if (!event || event.target === document.getElementById('stream-modal') || event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')) {
+      if (!event || event.target === document.getElementById('stream-modal') || (event.currentTarget && (event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')))) {
         document.getElementById('stream-modal').style.display = 'none';
+      }
+    }
+
+    function openEnrollModal() {
+      document.getElementById('enroll-modal').style.display = 'flex';
+    }
+    function closeEnrollModal(event) {
+      if (!event || event.target === document.getElementById('enroll-modal') || (event.currentTarget && (event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')))) {
+        document.getElementById('enroll-modal').style.display = 'none';
+      }
+    }
+
+    function openIdentitiesModal() {
+      fetchIdentities();
+      document.getElementById('identities-modal').style.display = 'flex';
+    }
+    function closeIdentitiesModal(event) {
+      if (!event || event.target === document.getElementById('identities-modal') || (event.currentTarget && (event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')))) {
+        document.getElementById('identities-modal').style.display = 'none';
+      }
+    }
+
+    function openSettingsModal() {
+      loadSettings();
+      document.getElementById('settings-modal').style.display = 'flex';
+    }
+    function closeSettingsModal(event) {
+      if (!event || event.target === document.getElementById('settings-modal') || (event.currentTarget && (event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')))) {
+        document.getElementById('settings-modal').style.display = 'none';
       }
     }
 
@@ -964,6 +1029,9 @@
       if (e.key === 'Escape') {
         document.getElementById('stream-modal').style.display = 'none';
         document.getElementById('security-zone-modal').style.display = 'none';
+        document.getElementById('enroll-modal').style.display = 'none';
+        document.getElementById('identities-modal').style.display = 'none';
+        document.getElementById('settings-modal').style.display = 'none';
       }
     });
   </script>
