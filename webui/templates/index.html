@@ -328,7 +328,7 @@
       color: var(--text-muted);
       line-height: 1.4;
     }
-  </style>
+  .modal {\n  display: none;\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.5);\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.modal-content {\n  background: var(--card-bg);\n  padding: 20px;\n  border-radius: 8px;\n  max-width: 90%;\n  max-height: 90%;\n  overflow: auto;\n}\n\n#toast {\n  display: none;\n  position: fixed;\n  bottom: 20px;\n  right: 20px;\n  background: var(--accent-color);\n  color: white;\n  padding: 0.75rem 1.2rem;\n  border-radius: 6px;\n  box-shadow: 0 2px 6px rgba(0,0,0,0.2);\n  z-index: 1100;\n}\n\n</style>
 </head>
 <body>
 
@@ -359,6 +359,7 @@
           <img src="/video_feed" alt="Live Face & Behavioral Recognition Stream">
         </div>
         <button class="btn" style="margin-top: 10px;" onclick="document.getElementById('stream-modal').style.display='flex'">View Fullscreen</button>
+<button class="btn btn-secondary" style="margin-top: 10px; margin-left: 10px;" onclick="openSecurityZoneModal()">Configure Security Zone</button>
       </div>
 
       <!-- Activity Log Card -->
@@ -444,7 +445,17 @@
       <button class="btn" onclick="document.getElementById('stream-modal').style.display='none'">Close</button>
     </div>
   </div>
-
+<div id="security-zone-modal" class="modal" onclick="this.style.display='none'">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3>Configure Security Zone</h3>
+    <canvas id="security-zone-canvas" width="640" height="480" style="border:1px solid var(--card-border); background:#000;"></canvas>
+    <div id="zone-error" style="color: var(--danger-color); margin-top:5px;"></div>
+    <div style="margin-top:10px; text-align:right;">
+      <button class="btn btn-secondary" onclick="closeSecurityZoneModal()">Cancel</button>
+      <button class="btn" onclick="saveSecurityZone()">Save</button>
+    </div>
+  </div>
+</div>
   <div id="toast" class="toast">Action Complete</div>
 
   <script>
@@ -604,6 +615,91 @@
     fetchIdentities();
     fetchActivityLogs();
     setInterval(fetchActivityLogs, 4000); // Auto-refresh log table every 4s
+
+// Security Zone Configuration Functions
+let zonePoints = [];
+function openSecurityZoneModal() {
+  document.getElementById('security-zone-modal').style.display = 'flex';
+  zonePoints = [];
+  const canvas = document.getElementById('security-zone-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  document.getElementById('zone-error').textContent = '';
+  // Load existing polygon for default camera (id 0)
+  loadSecurityZone(0);
+  canvas.onclick = function(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.round(event.clientX - rect.left);
+    const y = Math.round(event.clientY - rect.top);
+    zonePoints.push([x, y]);
+    drawPolygon();
+  };
+}
+function closeSecurityZoneModal() {
+  document.getElementById('security-zone-modal').style.display = 'none';
+}
+function drawPolygon() {
+  const canvas = document.getElementById('security-zone-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (zonePoints.length === 0) return;
+  ctx.strokeStyle = 'lime';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(zonePoints[0][0], zonePoints[0][1]);
+  for (let i = 1; i < zonePoints.length; i++) {
+    ctx.lineTo(zonePoints[i][0], zonePoints[i][1]);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  // Draw points
+  ctx.fillStyle = 'red';
+  zonePoints.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 2 * Math.PI); ctx.fill(); });
+}
+async function loadSecurityZone(cameraId) {
+  try {
+    const res = await fetch(`/api/security_zone/${cameraId}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.points)) {
+        zonePoints = data.points.map(pt => [pt[0], pt[1]]);
+        drawPolygon();
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load security zone:', e);
+  }
+}
+async function saveSecurityZone() {
+  if (zonePoints.length < 3) {
+    document.getElementById('zone-error').textContent = 'Polygon must have at least 3 points.';
+    return;
+  }
+  try {
+    const res = await fetch('/api/security_zone/0', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ points: zonePoints })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
+        showToast('Security zone saved');
+        closeSecurityZoneModal();
+      } else {
+        alert('Save failed: ' + (data.error || 'Unknown error'));
+      }
+    } else if (res.status === 400) {
+      const err = await res.json();
+      document.getElementById('zone-error').textContent = err.error || 'Validation error';
+    } else {
+      alert('Failed to save security zone');
+    }
+  } catch (e) {
+    alert('Error saving security zone');
+    console.error(e);
+  }
+}
   </script>
 </body>
 </html>
