@@ -29,13 +29,32 @@ class PoseBehaviorAnalyzer:
     and Virtual Security Zone Intrusion.
     """
 
-    def __init__(self):
+    def __init__(self, get_camera_index_callable=None):
+        """Initialize PoseBehaviorAnalyzer.
+
+        Args:
+            get_camera_index_callable: Callable returning the current active camera index.
+                If None, defaults to returning 0.
+        """
         self.next_track_id = 1
         self.tracked_persons: Dict[int, TrackedPerson] = {}
-        # Default Security Zone: Polygon covering center-bottom screen region
-        self.security_zone_polygon = np.array([
-            [100, 200], [540, 200], [540, 460], [100, 460]
-        ], dtype=np.int32)
+        self._get_camera_index = get_camera_index_callable or (lambda: 0)
+        # Load security zone polygon for the current camera
+        self._load_security_zone()
+
+    def _load_security_zone(self):
+        """Load the security zone polygon for the current camera.
+        The polygon is stored as an (N,2) int32 numpy array.
+        """
+        cam_idx = self._get_camera_index()
+        from .security_zone import load_security_zone
+        self.security_zone_polygon = load_security_zone(cam_idx)
+
+    def _reload_security_zone_if_needed(self):
+        """Reload polygon if the active camera index has changed.
+        Called before each check to ensure the polygon matches the current camera.
+        """
+        self._load_security_zone()
 
     def _match_track(self, centroid: Tuple[int, int], max_dist: float = 80.0) -> Optional[int]:
         """
@@ -67,9 +86,11 @@ class PoseBehaviorAnalyzer:
             return "Standing"
 
     def is_inside_security_zone(self, centroid: Tuple[int, int]) -> bool:
+        """Check if centroid point is inside the current security zone polygon.
+        The polygon is reloaded each call to reflect any changes for the active camera.
         """
-        Check if centroid point is inside virtual security zone polygon.
-        """
+        # Ensure we have the latest polygon for the current camera
+        self._reload_security_zone_if_needed()
         res = cv2.pointPolygonTest(self.security_zone_polygon, (float(centroid[0]), float(centroid[1])), False)
         return res >= 0
 

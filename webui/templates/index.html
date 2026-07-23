@@ -358,6 +358,7 @@
         <div class="video-container">
           <img src="/video_feed" alt="Live Face & Behavioral Recognition Stream">
         </div>
+        <button class="btn" style="margin-top: 10px;" onclick="document.getElementById('stream-modal').style.display='flex'">View Fullscreen</button>
       </div>
 
       <!-- Activity Log Card -->
@@ -436,7 +437,24 @@
     </div>
   </main>
 
+  <div id="stream-modal" class="modal" onclick="this.style.display='none'">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h3>Live Feed</h3>
+      <img src="/video_feed" style="width: 100%; border-radius: 8px;">
+      <button class="btn" onclick="document.getElementById('stream-modal').style.display='none'">Close</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Action Complete</div>
+
   <script>
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3000);
+    }
+
     async function fetchIdentities() {
       try {
         const res = await fetch('/api/identities');
@@ -473,6 +491,7 @@
         const data = await res.json();
         if (data.success) {
           fetchIdentities();
+          showToast('Identity deleted');
         }
       } catch (err) {
         console.error('Delete failed:', err);
@@ -530,6 +549,7 @@
         const data = await res.json();
         if (data.success) {
           fetchActivityLogs();
+          showToast('Logs cleared');
         }
       } catch (err) {
         console.error('Clear logs failed:', err);
@@ -555,6 +575,7 @@
           document.getElementById('identity-name').value = '';
           fileInput.value = '';
           fetchIdentities();
+          showToast('Identity registered');
         } else {
           alert(`Enrollment Error: ${data.error}`);
         }
@@ -576,6 +597,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ threshold: val })
       });
+      showToast('Settings saved');
     });
 
     // Initial load and periodic refresh

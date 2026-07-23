@@ -31,13 +31,14 @@ class FaceRecognitionPipeline:
         detector: Optional[FaceDetector] = None,
         embedder: Optional[FaceEmbedder] = None,
         db_manager: Optional[FaceDatabaseManager] = None,
-        activity_logger: Optional[ActivityLogger] = None
+        activity_logger: Optional[ActivityLogger] = None,
+        get_camera_index_callable=None
     ):
         self.detector = detector or FaceDetector()
         self.embedder = embedder or FaceEmbedder()
         self.db_manager = db_manager or FaceDatabaseManager()
         self.activity_logger = activity_logger or ActivityLogger()
-        self.behavior_manager = BehaviorEngineManager(activity_logger=self.activity_logger)
+        self.behavior_manager = BehaviorEngineManager(activity_logger=self.activity_logger, get_camera_index_callable=get_camera_index_callable)
 
     def process_frame(
         self,

@@ -15,9 +15,16 @@ class BehaviorEngineManager:
     Activity Logging, and Visual HUD Annotation Rendering.
     """
 
-    def __init__(self, activity_logger: Optional[ActivityLogger] = None):
+    def __init__(self, activity_logger: Optional[ActivityLogger] = None, get_camera_index_callable=None):
+        """Initialize BehaviorEngineManager.
+
+        Args:
+            activity_logger: Optional ActivityLogger instance.
+            get_camera_index_callable: Callable that returns the current active camera index.
+                If None, defaults to a function returning 0.
+        """
         self.facial_analyzer = FacialBehaviorAnalyzer()
-        self.pose_analyzer = PoseBehaviorAnalyzer()
+        self.pose_analyzer = PoseBehaviorAnalyzer(get_camera_index_callable)
         self.activity_logger = activity_logger or ActivityLogger()
 
     def process_frame(
@@ -37,6 +44,8 @@ class BehaviorEngineManager:
 
         # Draw Security Zone Polygon boundary
         if Config.ENABLE_POSE_BEHAVIOR:
+            # Ensure we have the latest polygon for the current camera
+            self.pose_analyzer._load_security_zone()
             zone_pts = self.pose_analyzer.security_zone_polygon.reshape((-1, 1, 2))
             cv2.polylines(annotated_frame, [zone_pts], isClosed=True, color=(0, 255, 255), thickness=1, lineType=cv2.LINE_AA)
             cv2.putText(annotated_frame, "SECURITY ZONE", (110, 195),

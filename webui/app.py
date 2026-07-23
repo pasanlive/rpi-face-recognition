@@ -4,6 +4,7 @@ import time
 import logging
 import numpy as np
 from flask import Flask, render_template, Response, request, jsonify, send_from_directory
+from behavior_engine import security_zone
 
 from config import Config
 from face_engine.detector import FaceDetector
@@ -25,8 +26,15 @@ def create_app():
     activity_logger = ActivityLogger()
     
     pipeline = None
+    # Define a getter for the current camera index to be used by the pipeline and behavior analyzer
+    def get_current_camera_index():
+        return current_camera_index
     try:
-        pipeline = FaceRecognitionPipeline(db_manager=db_manager, activity_logger=activity_logger)
+        pipeline = FaceRecognitionPipeline(
+            db_manager=db_manager,
+            activity_logger=activity_logger,
+            get_camera_index_callable=get_current_camera_index
+        )
     except Exception as e:
         logger.warning(f"Could not initialize pipeline immediately: {e}. App starting in manager mode.")
 
@@ -203,34 +211,35 @@ def create_app():
             logger.error(f"Error serving snapshot file '{filename}': {e}")
             return jsonify({"error": "File not found"}), 404
 
-    @app.route('/api/settings', methods=['GET', 'POST'])
-    def settings():
-        nonlocal current_threshold, current_camera_index, camera_cap
+
+
+    # Security Zone API
+    @app.route('/api/security_zone', methods=['GET'])
+    def get_security_zone():
         try:
-            if request.method == 'POST':
-                data = request.json or {}
-                if 'threshold' in data:
-                    current_threshold = float(data['threshold'])
-                if 'camera_index' in data:
-                    new_idx = int(data['camera_index'])
-                    if new_idx != current_camera_index:
-                        current_camera_index = new_idx
-                        if camera_cap:
-                            camera_cap.release()
-                            camera_cap = None
-                return jsonify({"success": True, "threshold": current_threshold, "camera_index": current_camera_index})
-            
-            return jsonify({
-                "success": True,
-                "threshold": current_threshold,
-                "camera_index": current_camera_index,
-                "target_device": Config.TARGET_DEVICE,
-                "enable_facial_behavior": Config.ENABLE_FACIAL_BEHAVIOR,
-                "enable_pose_behavior": Config.ENABLE_POSE_BEHAVIOR,
-                "enable_activity_logging": Config.ENABLE_ACTIVITY_LOGGING
-            })
+            polygon = security_zone.load_security_zone(current_camera_index)
+            # Convert numpy array to list of [x, y]
+            polygon_list = polygon.tolist()
+            return jsonify({"success": True, "polygon": polygon_list})
         except Exception as e:
-            logger.error(f"Error in /api/settings: {e}", exc_info=True)
+            logger.error(f"Error loading security zone: {e}", exc_info=True)
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/security_zone', methods=['POST'])
+    def save_security_zone():
+        try:
+            data = request.json or {}
+            polygon = data.get('polygon')
+            if not polygon:
+                return jsonify({"success": False, "error": "Polygon data missing"}), 400
+            if not security_zone.validate_polygon(polygon):
+                # Inline validation error; return 400 with message
+                return jsonify({"success": False, "error": "Invalid polygon format"}), 400
+            security_zone.save_security_zone(current_camera_index, polygon)
+            return jsonify({"success": True, "message": "Security zone saved"})
+        except Exception as e:
+            logger.error(f"Error saving security zone: {e}", exc_info=True)
+            # Modal alert on save failure
             return jsonify({"success": False, "error": str(e)}), 500
 
     return app
