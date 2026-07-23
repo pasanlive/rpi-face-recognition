@@ -323,12 +323,107 @@
       border: 1px solid #10b981;
     }
 
-    .beh-details {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      line-height: 1.4;
+    /* Modal Dialog & Overlay Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 15, 25, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 1.5rem;
+      animation: modalFadeIn 0.25s ease-out;
     }
-  .modal {\n  display: none;\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.5);\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.modal-content {\n  background: var(--card-bg);\n  padding: 20px;\n  border-radius: 8px;\n  max-width: 90%;\n  max-height: 90%;\n  overflow: auto;\n}\n\n#toast {\n  display: none;\n  position: fixed;\n  bottom: 20px;\n  right: 20px;\n  background: var(--accent-color);\n  color: white;\n  padding: 0.75rem 1.2rem;\n  border-radius: 6px;\n  box-shadow: 0 2px 6px rgba(0,0,0,0.2);\n  z-index: 1100;\n}\n\n</style>
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      animation: modalScaleUp 0.25s ease-out;
+    }
+
+    @keyframes modalScaleUp {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .modal-header h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      transition: color 0.2s, background-color 0.2s;
+    }
+
+    .modal-close-btn:hover {
+      color: var(--text-main);
+      background-color: var(--input-bg);
+    }
+
+    .modal-body {
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      align-items: center;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--card-border);
+    }
+
+    /* Toast Notification */
+    .toast {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--accent-color);
+      color: var(--text-main);
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+      z-index: 1100;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
 
@@ -358,8 +453,16 @@
         <div class="video-container">
           <img src="/video_feed" alt="Live Face & Behavioral Recognition Stream">
         </div>
-        <button class="btn" style="margin-top: 10px;" onclick="document.getElementById('stream-modal').style.display='flex'">View Fullscreen</button>
-<button class="btn btn-secondary" style="margin-top: 10px; margin-left: 10px;" onclick="openSecurityZoneModal()">Configure Security Zone</button>
+        <div style="margin-top: 12px; display: flex; gap: 0.75rem;">
+          <button class="btn" onclick="openStreamModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            View Fullscreen
+          </button>
+          <button class="btn btn-secondary" onclick="openSecurityZoneModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Configure Security Zone
+          </button>
+        </div>
       </div>
 
       <!-- Activity Log Card -->
@@ -438,24 +541,54 @@
     </div>
   </main>
 
-  <div id="stream-modal" class="modal" onclick="this.style.display='none'">
-    <div class="modal-content" onclick="event.stopPropagation()">
-      <h3>Live Feed</h3>
-      <img src="/video_feed" style="width: 100%; border-radius: 8px;">
-      <button class="btn" onclick="document.getElementById('stream-modal').style.display='none'">Close</button>
+  <!-- View Fullscreen Modal Dialog -->
+  <div id="stream-modal" class="modal" onclick="closeStreamModal(event)">
+    <div class="modal-content" style="max-width: 960px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <span class="status-dot"></span>
+          Real-Time AI Camera Feed — Fullscreen
+        </h3>
+        <button class="modal-close-btn" onclick="closeStreamModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" style="margin-bottom: 0;">
+        <div class="video-container" style="aspect-ratio: 16 / 9; max-height: 70vh;">
+          <img id="fullscreen-video-feed" src="/video_feed" alt="Live Camera Stream Fullscreen">
+        </div>
+      </div>
+      <div class="modal-footer" style="margin-top: 1rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); margin-right: auto;">Press ESC or click outside to exit</span>
+        <button class="btn btn-secondary" onclick="closeStreamModal()">Close Fullscreen</button>
+      </div>
     </div>
   </div>
-<div id="security-zone-modal" class="modal" onclick="this.style.display='none'">
-  <div class="modal-content" onclick="event.stopPropagation()">
-    <h3>Configure Security Zone</h3>
-    <canvas id="security-zone-canvas" width="640" height="480" style="border:1px solid var(--card-border); background:#000;"></canvas>
-    <div id="zone-error" style="color: var(--danger-color); margin-top:5px;"></div>
-    <div style="margin-top:10px; text-align:right;">
-      <button class="btn btn-secondary" onclick="closeSecurityZoneModal()">Cancel</button>
-      <button class="btn" onclick="saveSecurityZone()">Save</button>
+
+  <!-- Configure Security Zone Modal Dialog -->
+  <div id="security-zone-modal" class="modal" onclick="closeSecurityZoneModal(event)">
+    <div class="modal-content" style="max-width: 720px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning-color)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Configure Security Zone Boundary
+        </h3>
+        <button class="modal-close-btn" onclick="closeSecurityZoneModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.5;">
+          Click inside the 640×480 frame boundary to place vertices defining the restricted intrusion detection zone. Minimum 3 points required.
+        </p>
+        <div style="position: relative; width: 100%; aspect-ratio: 4 / 3; background: #000; border: 1px solid var(--card-border); border-radius: 8px; overflow: hidden;">
+          <canvas id="security-zone-canvas" width="640" height="480" style="width: 100%; height: 100%; cursor: crosshair; display: block;"></canvas>
+        </div>
+        <div id="zone-error" style="color: var(--danger-color); font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.25rem; font-weight: 500;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="resetZonePoints()" style="margin-right: auto;">Clear Points</button>
+        <button class="btn btn-secondary" onclick="closeSecurityZoneModal()">Cancel</button>
+        <button class="btn" onclick="saveSecurityZone()">Save Boundary</button>
+      </div>
     </div>
   </div>
-</div>
   <div id="toast" class="toast">Action Complete</div>
 
   <script>
@@ -616,90 +749,173 @@
     fetchActivityLogs();
     setInterval(fetchActivityLogs, 4000); // Auto-refresh log table every 4s
 
-// Security Zone Configuration Functions
-let zonePoints = [];
-function openSecurityZoneModal() {
-  document.getElementById('security-zone-modal').style.display = 'flex';
-  zonePoints = [];
-  const canvas = document.getElementById('security-zone-canvas');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  document.getElementById('zone-error').textContent = '';
-  // Load existing polygon for default camera (id 0)
-  loadSecurityZone(0);
-  canvas.onclick = function(event) {
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.round(event.clientX - rect.left);
-    const y = Math.round(event.clientY - rect.top);
-    zonePoints.push([x, y]);
-    drawPolygon();
-  };
-}
-function closeSecurityZoneModal() {
-  document.getElementById('security-zone-modal').style.display = 'none';
-}
-function drawPolygon() {
-  const canvas = document.getElementById('security-zone-canvas');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (zonePoints.length === 0) return;
-  ctx.strokeStyle = 'lime';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(zonePoints[0][0], zonePoints[0][1]);
-  for (let i = 1; i < zonePoints.length; i++) {
-    ctx.lineTo(zonePoints[i][0], zonePoints[i][1]);
-  }
-  ctx.closePath();
-  ctx.stroke();
-  // Draw points
-  ctx.fillStyle = 'red';
-  zonePoints.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 2 * Math.PI); ctx.fill(); });
-}
-async function loadSecurityZone(cameraId) {
-  try {
-    const res = await fetch(`/api/security_zone/${cameraId}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.points)) {
-        zonePoints = data.points.map(pt => [pt[0], pt[1]]);
+    // Fullscreen Stream Modal Functions
+    function openStreamModal() {
+      document.getElementById('stream-modal').style.display = 'flex';
+    }
+
+    function closeStreamModal(event) {
+      if (!event || event.target === document.getElementById('stream-modal') || event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')) {
+        document.getElementById('stream-modal').style.display = 'none';
+      }
+    }
+
+    // Security Zone Modal & Canvas Interactive Drawing
+    let zonePoints = [];
+
+    function openSecurityZoneModal() {
+      document.getElementById('security-zone-modal').style.display = 'flex';
+      zonePoints = [];
+      document.getElementById('zone-error').textContent = '';
+      
+      const canvas = document.getElementById('security-zone-canvas');
+      canvas.onclick = function(event) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = Math.round((event.clientX - rect.left) * scaleX);
+        const y = Math.round((event.clientY - rect.top) * scaleY);
+        zonePoints.push([x, y]);
         drawPolygon();
+      };
+
+      loadSecurityZone(0);
+    }
+
+    function closeSecurityZoneModal(event) {
+      if (!event || event.target === document.getElementById('security-zone-modal') || (event.currentTarget && (event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')))) {
+        document.getElementById('security-zone-modal').style.display = 'none';
       }
     }
-  } catch (e) {
-    console.error('Failed to load security zone:', e);
-  }
-}
-async function saveSecurityZone() {
-  if (zonePoints.length < 3) {
-    document.getElementById('zone-error').textContent = 'Polygon must have at least 3 points.';
-    return;
-  }
-  try {
-    const res = await fetch('/api/security_zone/0', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ points: zonePoints })
+
+    function resetZonePoints() {
+      zonePoints = [];
+      document.getElementById('zone-error').textContent = '';
+      drawPolygon();
+    }
+
+    function drawPolygon() {
+      const canvas = document.getElementById('security-zone-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw subtle background grid
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 80) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 80) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      if (zonePoints.length === 0) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '14px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Click to add vertices defining the perimeter', canvas.width / 2, canvas.height / 2);
+        return;
+      }
+
+      // Fill polygon if 3+ points
+      if (zonePoints.length >= 3) {
+        ctx.beginPath();
+        ctx.moveTo(zonePoints[0][0], zonePoints[0][1]);
+        for (let i = 1; i < zonePoints.length; i++) {
+          ctx.lineTo(zonePoints[i][0], zonePoints[i][1]);
+        }
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+        ctx.fill();
+      }
+
+      // Draw boundary stroke lines
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(zonePoints[0][0], zonePoints[0][1]);
+      for (let i = 1; i < zonePoints.length; i++) {
+        ctx.lineTo(zonePoints[i][0], zonePoints[i][1]);
+      }
+      if (zonePoints.length >= 3) {
+        ctx.closePath();
+      }
+      ctx.stroke();
+
+      // Draw node points and numbers
+      zonePoints.forEach((p, idx) => {
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], 5, 0, 2 * Math.PI);
+        ctx.fillStyle = '#ef4444';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 11px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`#${idx + 1}`, p[0] + 8, p[1] - 8);
+      });
+    }
+
+    async function loadSecurityZone(cameraId) {
+      try {
+        const res = await fetch(`/api/security_zone/${cameraId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.points)) {
+            zonePoints = data.points.map(pt => [pt[0], pt[1]]);
+            drawPolygon();
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load security zone:', e);
+      }
+    }
+
+    async function saveSecurityZone() {
+      if (zonePoints.length < 3) {
+        document.getElementById('zone-error').textContent = '⚠️ Security zone polygon must have at least 3 vertices.';
+        return;
+      }
+      try {
+        const res = await fetch('/api/security_zone/0', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ points: zonePoints })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            showToast('Security zone saved successfully');
+            document.getElementById('security-zone-modal').style.display = 'none';
+          } else {
+            document.getElementById('zone-error').textContent = data.error || 'Failed to save security zone.';
+          }
+        } else {
+          const err = await res.json();
+          document.getElementById('zone-error').textContent = err.error || 'Validation error.';
+        }
+      } catch (e) {
+        document.getElementById('zone-error').textContent = 'Network error saving security zone.';
+        console.error(e);
+      }
+    }
+
+    // Global Keydown Handler (Close Modals on Escape)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.getElementById('stream-modal').style.display = 'none';
+        document.getElementById('security-zone-modal').style.display = 'none';
+      }
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success) {
-        showToast('Security zone saved');
-        closeSecurityZoneModal();
-      } else {
-        alert('Save failed: ' + (data.error || 'Unknown error'));
-      }
-    } else if (res.status === 400) {
-      const err = await res.json();
-      document.getElementById('zone-error').textContent = err.error || 'Validation error';
-    } else {
-      alert('Failed to save security zone');
-    }
-  } catch (e) {
-    alert('Error saving security zone');
-    console.error(e);
-  }
-}
   </script>
 </body>
 </html>
