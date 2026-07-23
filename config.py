@@ -20,8 +20,9 @@ class Config:
     # Face Alignment Settings
     INPUT_FACE_SIZE = 112
 
-    # Camera & Video Source
-    DEFAULT_CAMERA_SOURCE = int(os.getenv("FACE_APP_CAM_INDEX", "0"))
+    # Camera & Video Source (numerical index like 0, 1 or RTSP URL like "rtsp://user:pass@192.168.1.100:554/stream")
+    _cam_env = os.getenv("FACE_APP_CAM_INDEX", "0")
+    DEFAULT_CAMERA_SOURCE = int(_cam_env) if _cam_env.isdigit() else _cam_env
 
     # Behavioral Detection Settings
     ENABLE_FACIAL_BEHAVIOR = os.getenv("ENABLE_FACIAL_BEHAVIOR", "true").lower() == "true"

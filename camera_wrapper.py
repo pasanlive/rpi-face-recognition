@@ -1,7 +1,9 @@
 import sys
 import os
 import cv2
+import time
 import logging
+import threading
 import numpy as np
 from typing import Tuple, Optional, Union
 
@@ -22,8 +24,10 @@ except ImportError:
 class CameraWrapper:
     """
     Unified Camera Manager for Raspberry Pi 5 & Desktop setups.
-    Automatically prioritizes Picamera2 for CSI Cameras (e.g. Raspberry Pi Camera Module 3 IMX708)
-    and falls back to OpenCV VideoCapture (V4L2) for USB Webcams or RTSP streams.
+    Supports:
+      - Picamera2 for Raspberry Pi CSI Camera Modules (IMX708)
+      - OpenCV VideoCapture (V4L2) for USB Webcams
+      - RTSP / RTMP / HTTP / File video streams with background thread reading
     """
 
     def __init__(self, source: Union[int, str] = 0):
@@ -31,11 +35,32 @@ class CameraWrapper:
         self.picam2 = None
         self.cap = None
         self.is_picam = False
+        self.is_rtsp = False
+        self.running = False
+        self.thread = None
+        self.latest_frame = None
+        self.lock = threading.Lock()
         self._open()
 
     def _open(self):
+        # Determine numerical or string URL source
+        is_num = isinstance(self.source, int) or (isinstance(self.source, str) and str(self.source).isdigit())
+        
+        if is_num:
+            self.source = int(self.source)
+
+        # Detect RTSP or Network video streams
+        if isinstance(self.source, str) and (
+            self.source.startswith(("rtsp://", "rtmps://", "rtmp://", "http://", "https://")) or
+            os.path.isfile(self.source)
+        ):
+            self.is_rtsp = True
+
+        # For RTSP network streams, configure OpenCV FFMPEG TCP transport options to eliminate packet loss artifacts
+        if isinstance(self.source, str) and self.source.startswith(("rtsp://", "rtmps://")):
+            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|allowed_media_types;video"
+
         # Try Picamera2 for numerical CSI camera sources
-        is_num = isinstance(self.source, int) or (isinstance(self.source, str) and self.source.isdigit())
         if PICAMERA2_AVAILABLE and is_num:
             try:
                 logger.info("Attempting Picamera2 initialization for Raspberry Pi CSI Camera Module...")
@@ -56,27 +81,49 @@ class CameraWrapper:
                 self.picam2 = None
                 self.is_picam = False
 
-        # OpenCV VideoCapture fallback for USB webcams & streams
-        idx = int(self.source) if is_num else self.source
-        logger.info(f"Opening OpenCV VideoCapture source '{idx}'...")
-        if isinstance(idx, int):
-            self.cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
+        # OpenCV VideoCapture fallback for USB webcams & RTSP streams
+        logger.info(f"Opening OpenCV VideoCapture source '{self.source}'...")
+        if isinstance(self.source, int):
+            self.cap = cv2.VideoCapture(self.source, cv2.CAP_V4L2)
             if self.cap and self.cap.isOpened():
                 self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
                 self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
                 self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             if not self.cap or not self.cap.isOpened():
-                self.cap = cv2.VideoCapture(idx)
+                self.cap = cv2.VideoCapture(self.source)
                 if self.cap and self.cap.isOpened():
                     self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
                     self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
                     self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         else:
-            self.cap = cv2.VideoCapture(idx)
+            # RTSP stream or video file
+            self.cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG)
+            if not self.cap or not self.cap.isOpened():
+                self.cap = cv2.VideoCapture(self.source)
 
         if self.cap and self.cap.isOpened():
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            # Minimize buffer delay for network RTSP streams
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            
+            # Start background thread to continually pull frames and eliminate buffer lag
+            self.running = True
+            self.thread = threading.Thread(target=self._reader_loop, daemon=True)
+            self.thread.start()
+            logger.info("OpenCV VideoCapture background frame reader started.")
+
+    def _reader_loop(self):
+        """Background thread continuously pulling frames to prevent buffer backlog."""
+        while self.running and self.cap and self.cap.isOpened():
+            try:
+                ret, frame = self.cap.read()
+                if not ret or frame is None or frame.size == 0:
+                    time.sleep(0.01)
+                    continue
+                with self.lock:
+                    self.latest_frame = frame
+            except Exception as e:
+                logger.error(f"Error in camera background reader loop: {e}")
+                time.sleep(0.05)
 
     def is_opened(self) -> bool:
         if self.is_picam and self.picam2:
@@ -95,6 +142,12 @@ class CameraWrapper:
                 logger.error(f"Picamera2 capture error: {e}")
                 return False, None
 
+        if self.running:
+            with self.lock:
+                if self.latest_frame is not None:
+                    return True, self.latest_frame.copy()
+                return False, None
+
         if self.cap and self.cap.isOpened():
             try:
                 ret, frame = self.cap.read()
@@ -108,6 +161,11 @@ class CameraWrapper:
         return False, None
 
     def release(self):
+        self.running = False
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=1.0)
+            self.thread = None
+
         if self.is_picam and self.picam2:
             try:
                 self.picam2.stop()
@@ -123,3 +181,4 @@ class CameraWrapper:
             except Exception as e:
                 logger.warning(f"Error releasing OpenCV VideoCapture: {e}")
             self.cap = None
+

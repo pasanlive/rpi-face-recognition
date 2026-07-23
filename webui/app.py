@@ -218,34 +218,35 @@ def create_app():
 
     # Security Zone API
     @app.route('/api/security_zone', methods=['GET'])
-    def get_security_zone():
+    @app.route('/api/security_zone/<camera_id>', methods=['GET'])
+    def get_security_zone(camera_id=None):
         try:
-            polygon = security_zone.load_security_zone(current_camera_index)
-            # Convert numpy array to list of [x, y]
+            cam = camera_id if camera_id is not None else current_camera_index
+            polygon = security_zone.load_security_zone(cam)
             polygon_list = polygon.tolist()
-            return jsonify({"success": True, "polygon": polygon_list})
+            return jsonify({"success": True, "polygon": polygon_list, "points": polygon_list})
         except Exception as e:
             logger.error(f"Error loading security zone: {e}", exc_info=True)
             return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/security_zone', methods=['POST'])
-    def save_security_zone():
+    @app.route('/api/security_zone/<camera_id>', methods=['POST'])
+    def save_security_zone_api(camera_id=None):
         try:
             data = request.json or {}
-            polygon = data.get('polygon')
+            polygon = data.get('polygon', data.get('points'))
             if not polygon:
                 return jsonify({"success": False, "error": "Polygon data missing"}), 400
             if not security_zone.validate_polygon(polygon):
-                # Inline validation error; return 400 with message
                 return jsonify({"success": False, "error": "Invalid polygon format"}), 400
-            security_zone.save_security_zone(current_camera_index, polygon)
+            cam = camera_id if camera_id is not None else current_camera_index
+            security_zone.save_security_zone(cam, polygon)
             return jsonify({"success": True, "message": "Security zone saved"})
         except Exception as e:
             logger.error(f"Error saving security zone: {e}", exc_info=True)
-            # Modal alert on save failure
             return jsonify({"success": False, "error": str(e)}), 500
 
-    # Settings API (restored)
+    # Settings API (Supports local indices e.g. 0, 1 or RTSP URLs)
     @app.route('/api/settings', methods=['GET', 'POST'])
     def settings():
         nonlocal current_threshold, current_camera_index, camera_cap
@@ -254,18 +255,34 @@ def create_app():
                 data = request.json or {}
                 if 'threshold' in data:
                     current_threshold = float(data['threshold'])
-                if 'camera_index' in data:
-                    new_idx = int(data['camera_index'])
-                    if new_idx != current_camera_index:
-                        current_camera_index = new_idx
+                if 'camera_source' in data or 'camera_index' in data:
+                    raw_source = data.get('camera_source', data.get('camera_index'))
+                    if isinstance(raw_source, str) and raw_source.isdigit():
+                        new_source = int(raw_source)
+                    elif isinstance(raw_source, (int, str)):
+                        new_source = raw_source
+                    else:
+                        new_source = current_camera_index
+
+                    if new_source != current_camera_index:
+                        logger.info(f"Switching camera source from '{current_camera_index}' to '{new_source}'...")
+                        current_camera_index = new_source
                         if camera_cap:
                             camera_cap.release()
                             camera_cap = None
-                return jsonify({"success": True, "threshold": current_threshold, "camera_index": current_camera_index})
+
+                return jsonify({
+                    "success": True,
+                    "threshold": current_threshold,
+                    "camera_index": current_camera_index,
+                    "camera_source": current_camera_index
+                })
+
             return jsonify({
                 "success": True,
                 "threshold": current_threshold,
                 "camera_index": current_camera_index,
+                "camera_source": current_camera_index,
                 "target_device": Config.TARGET_DEVICE,
                 "enable_facial_behavior": Config.ENABLE_FACIAL_BEHAVIOR,
                 "enable_pose_behavior": Config.ENABLE_POSE_BEHAVIOR,

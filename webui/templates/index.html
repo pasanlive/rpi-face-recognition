@@ -536,6 +536,17 @@
             <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.36" style="width: 100%;">
           </div>
         </div>
+
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <label for="camera-source-input">Video Input Source (Local Cam / RTSP URL)</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="camera-source-input" class="form-control" placeholder="e.g. 0 or rtsp://192.168.1.100:554/live">
+            <button type="button" class="btn btn-secondary" onclick="applyCameraSource()" style="white-space: nowrap; font-size: 0.85rem;">Apply</button>
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.35rem; line-height: 1.3;">
+            Enter index (0, 1) or RTSP stream URL (rtsp://user:pass@ip:554/stream)
+          </span>
+        </div>
       </div>
 
     </div>
@@ -728,23 +739,58 @@
       }
     });
 
-    const slider = document.getElementById('threshold-slider');
-    const sliderVal = document.getElementById('threshold-val');
-    slider.addEventListener('input', (e) => {
-      sliderVal.textContent = e.target.value;
-    });
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            if (data.threshold !== undefined) {
+              document.getElementById('threshold-slider').value = data.threshold;
+              document.getElementById('threshold-val').textContent = data.threshold;
+            }
+            if (data.camera_source !== undefined || data.camera_index !== undefined) {
+              document.getElementById('camera-source-input').value = data.camera_source ?? data.camera_index;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load settings:', e);
+      }
+    }
 
-    slider.addEventListener('change', async (e) => {
-      const val = parseFloat(e.target.value);
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threshold: val })
-      });
-      showToast('Settings saved');
-    });
+    async function applyCameraSource() {
+      const srcInput = document.getElementById('camera-source-input').value.trim();
+      if (!srcInput) return;
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ camera_source: srcInput })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            showToast('Video source updated: ' + (data.camera_source ?? srcInput));
+            // Reload img source to retrigger video feed stream connection
+            const img = document.querySelector('.video-container img');
+            if (img) {
+              img.src = '/video_feed?t=' + Date.now();
+            }
+            const fsImg = document.getElementById('fullscreen-video-feed');
+            if (fsImg) {
+              fsImg.src = '/video_feed?t=' + Date.now();
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to update camera source:', e);
+        showToast('Error updating camera source');
+      }
+    }
 
     // Initial load and periodic refresh
+    loadSettings();
     fetchIdentities();
     fetchActivityLogs();
     setInterval(fetchActivityLogs, 4000); // Auto-refresh log table every 4s
