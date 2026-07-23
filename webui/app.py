@@ -217,34 +217,31 @@ def create_app():
 
 
     # Security Zone API
-    @app.route('/api/security_zone', methods=['GET'])
-    @app.route('/api/security_zone/<camera_id>', methods=['GET'])
-    def get_security_zone(camera_id=None):
-        try:
-            cam = camera_id if camera_id is not None else current_camera_index
-            polygon = security_zone.load_security_zone(cam)
-            polygon_list = polygon.tolist()
-            return jsonify({"success": True, "polygon": polygon_list, "points": polygon_list})
-        except Exception as e:
-            logger.error(f"Error loading security zone: {e}", exc_info=True)
-            return jsonify({"success": False, "error": str(e)}), 500
-
-    @app.route('/api/security_zone', methods=['POST'])
-    @app.route('/api/security_zone/<camera_id>', methods=['POST'])
-    def save_security_zone_api(camera_id=None):
-        try:
-            data = request.json or {}
-            polygon = data.get('polygon', data.get('points'))
-            if not polygon:
-                return jsonify({"success": False, "error": "Polygon data missing"}), 400
-            if not security_zone.validate_polygon(polygon):
-                return jsonify({"success": False, "error": "Invalid polygon format"}), 400
-            cam = camera_id if camera_id is not None else current_camera_index
-            security_zone.save_security_zone(cam, polygon)
-            return jsonify({"success": True, "message": "Security zone saved"})
-        except Exception as e:
-            logger.error(f"Error saving security zone: {e}", exc_info=True)
-            return jsonify({"success": False, "error": str(e)}), 500
+    @app.route('/api/security_zone', methods=['GET', 'POST'], strict_slashes=False)
+    @app.route('/api/security_zone/<path:camera_id>', methods=['GET', 'POST'], strict_slashes=False)
+    def handle_security_zone(camera_id=None):
+        cam = camera_id if camera_id is not None else current_camera_index
+        if request.method == 'GET':
+            try:
+                polygon = security_zone.load_security_zone(cam)
+                polygon_list = polygon.tolist()
+                return jsonify({"success": True, "polygon": polygon_list, "points": polygon_list, "camera_id": str(cam)})
+            except Exception as e:
+                logger.error(f"Error loading security zone: {e}", exc_info=True)
+                return jsonify({"success": False, "error": str(e)}), 500
+        elif request.method == 'POST':
+            try:
+                data = request.json or {}
+                polygon = data.get('polygon', data.get('points'))
+                if not polygon:
+                    return jsonify({"success": False, "error": "Polygon data missing"}), 400
+                if not security_zone.validate_polygon(polygon):
+                    return jsonify({"success": False, "error": "Invalid polygon format"}), 400
+                security_zone.save_security_zone(cam, polygon)
+                return jsonify({"success": True, "message": "Security zone saved", "camera_id": str(cam)})
+            except Exception as e:
+                logger.error(f"Error saving security zone: {e}", exc_info=True)
+                return jsonify({"success": False, "error": str(e)}), 500
 
     # Settings API (Supports local indices e.g. 0, 1 or RTSP URLs)
     @app.route('/api/settings', methods=['GET', 'POST'])

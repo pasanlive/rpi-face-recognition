@@ -913,11 +913,15 @@
 
     async function loadSecurityZone(cameraId) {
       try {
-        const res = await fetch(`/api/security_zone/${cameraId}`);
-        if (res.ok) {
+        const url = (cameraId !== undefined && cameraId !== null)
+          ? `/api/security_zone/${encodeURIComponent(cameraId)}`
+          : '/api/security_zone';
+        const res = await fetch(url);
+        const ct = res.headers.get('content-type') || '';
+        if (res.ok && ct.includes('application/json')) {
           const data = await res.json();
-          if (data.success && Array.isArray(data.points)) {
-            zonePoints = data.points.map(pt => [pt[0], pt[1]]);
+          if (data.success && Array.isArray(data.points || data.polygon)) {
+            zonePoints = (data.points || data.polygon).map(pt => [pt[0], pt[1]]);
             drawPolygon();
           }
         }
@@ -932,25 +936,25 @@
         return;
       }
       try {
-        const res = await fetch('/api/security_zone/0', {
+        const res = await fetch('/api/security_zone', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ points: zonePoints })
         });
-        if (res.ok) {
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
           const data = await res.json();
-          if (data.success) {
+          if (res.ok && data.success) {
             showToast('Security zone saved successfully');
             document.getElementById('security-zone-modal').style.display = 'none';
           } else {
-            document.getElementById('zone-error').textContent = data.error || 'Failed to save security zone.';
+            document.getElementById('zone-error').textContent = '⚠️ ' + (data.error || 'Failed to save security zone.');
           }
         } else {
-          const err = await res.json();
-          document.getElementById('zone-error').textContent = err.error || 'Validation error.';
+          document.getElementById('zone-error').textContent = `⚠️ Server returned error status ${res.status}`;
         }
       } catch (e) {
-        document.getElementById('zone-error').textContent = 'Network error saving security zone.';
+        document.getElementById('zone-error').textContent = '⚠️ Network error saving security zone.';
         console.error(e);
       }
     }
