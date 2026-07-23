@@ -23,3 +23,8 @@ class FaceRecognitionSchema(LanceModel):
             entity_name=entity_name,
             created_at=now_str
         )
+
+# New schema for per‑camera security zones
+class SecurityZoneSchema(LanceModel):
+    camera_index: int  # primary key
+    polygon: List[int]  # flattened list [x1, y1, x2, y2, ...]
