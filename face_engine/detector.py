@@ -86,29 +86,59 @@ class FaceDetector:
                     model=self.yn_model_file,
                     config="",
                     input_size=(w, h),
-                    score_threshold=0.5,
+                    score_threshold=0.65, # Raised threshold from 0.5 to 0.65 to eliminate false positive background/furniture detections
                     nms_threshold=0.3,
                     top_k=5000
                 )
                 _, faces = yn.detect(img)
                 if faces is not None:
                     for face in faces:
+                        score = float(face[14])
+                        if score < 0.65:
+                            continue
+
                         fx, fy, fw, fh = face[0:4]
                         x1, y1 = int(max(0, fx)), int(max(0, fy))
                         x2, y2 = int(min(w, fx + fw)), int(min(h, fy + fh))
+                        box_w, box_h = x2 - x1, y2 - y1
+
+                        # Filter out tiny noise boxes and non-face aspect ratios
+                        if box_w < 35 or box_h < 35:
+                            continue
+                        aspect_ratio = box_h / float(max(1, box_w))
+                        if aspect_ratio < 0.7 or aspect_ratio > 1.6:
+                            continue
+
+                        # Extract 5 facial keypoint landmarks
+                        re_x, re_y = float(face[4]), float(face[5])
+                        le_x, le_y = float(face[6]), float(face[7])
+                        nose_x, nose_y = float(face[8]), float(face[9])
+                        rm_x, rm_y = float(face[10]), float(face[11])
+                        lm_x, lm_y = float(face[12]), float(face[13])
+
+                        # Geometric Validation: Check inter-ocular distance (eye-to-eye spacing >= 12px)
+                        eye_dist = np.hypot(le_x - re_x, le_y - re_y)
+                        if eye_dist < 12.0:
+                            continue
+
+                        # Check that eyes sit higher than mouth
+                        avg_eye_y = (re_y + le_y) / 2.0
+                        avg_mouth_y = (rm_y + lm_y) / 2.0
+                        if avg_mouth_y <= avg_eye_y:
+                            continue
 
                         landmarks = [
-                            {"landmark": [float(face[4]), float(face[5])]},   # Right eye
-                            {"landmark": [float(face[6]), float(face[7])]},   # Left eye
-                            {"landmark": [float(face[8]), float(face[9])]},   # Nose tip
-                            {"landmark": [float(face[10]), float(face[11])]}, # Right mouth
-                            {"landmark": [float(face[12]), float(face[13])]}  # Left mouth
+                            {"landmark": [re_x, re_y]},   # Right eye
+                            {"landmark": [le_x, le_y]},   # Left eye
+                            {"landmark": [nose_x, nose_y]}, # Nose tip
+                            {"landmark": [rm_x, rm_y]},   # Right mouth
+                            {"landmark": [lm_x, lm_y]}    # Left mouth
                         ]
 
                         results.append({
                             "bbox": [x1, y1, x2, y2],
                             "landmarks": landmarks,
-                            "score": float(face[14])
+                            "score": score
                         })
             except Exception as e:
                 logger.error(f"YuNet detection error: {e}")
@@ -117,10 +147,17 @@ class FaceDetector:
         if not results and self.haar_cascade is not None:
             try:
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                faces = self.haar_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
+                faces = self.haar_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=7, minSize=(60, 60))
                 for (x, y, fw, fh) in faces:
                     x1, y1 = int(x), int(y)
                     x2, y2 = int(x + fw), int(y + fh)
+                    box_w, box_h = x2 - x1, y2 - y1
+
+                    if box_w < 40 or box_h < 40:
+                        continue
+                    aspect_ratio = box_h / float(max(1, box_w))
+                    if aspect_ratio < 0.75 or aspect_ratio > 1.5:
+                        continue
                     
                     # Estimate standard 5 keypoint ratios relative to bounding box
                     landmarks = [

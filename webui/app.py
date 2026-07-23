@@ -216,6 +216,24 @@ def create_app():
 
 
 
+    @app.route('/api/camera_snapshot')
+    def camera_snapshot():
+        nonlocal camera_cap
+        try:
+            cap = get_camera()
+            if cap and cap.is_opened():
+                success, frame = cap.read()
+                if success and frame is not None and frame.size > 0:
+                    ret, buffer = cv2.imencode('.jpg', frame)
+                    return Response(buffer.tobytes(), mimetype='image/jpeg')
+        except Exception as e:
+            logger.error(f"Snapshot error: {e}")
+        blank = np.zeros((Config.CAMERA_HEIGHT, Config.CAMERA_WIDTH, 3), dtype=np.uint8)
+        cv2.putText(blank, "Live Snapshot Unavailable", (int(Config.CAMERA_WIDTH * 0.25), int(Config.CAMERA_HEIGHT * 0.5)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
+        ret, buffer = cv2.imencode('.jpg', blank)
+        return Response(buffer.tobytes(), mimetype='image/jpeg')
+
     # Security Zone API
     @app.route('/api/security_zone', methods=['GET', 'POST'], strict_slashes=False)
     @app.route('/api/security_zone/<path:camera_id>', methods=['GET', 'POST'], strict_slashes=False)
@@ -225,7 +243,14 @@ def create_app():
             try:
                 polygon = security_zone.load_security_zone(cam)
                 polygon_list = polygon.tolist()
-                return jsonify({"success": True, "polygon": polygon_list, "points": polygon_list, "camera_id": str(cam)})
+                return jsonify({
+                    "success": True,
+                    "polygon": polygon_list,
+                    "points": polygon_list,
+                    "camera_id": str(cam),
+                    "camera_width": Config.CAMERA_WIDTH,
+                    "camera_height": Config.CAMERA_HEIGHT
+                })
             except Exception as e:
                 logger.error(f"Error loading security zone: {e}", exc_info=True)
                 return jsonify({"success": False, "error": str(e)}), 500
@@ -272,7 +297,9 @@ def create_app():
                     "success": True,
                     "threshold": current_threshold,
                     "camera_index": current_camera_index,
-                    "camera_source": current_camera_index
+                    "camera_source": current_camera_index,
+                    "camera_width": Config.CAMERA_WIDTH,
+                    "camera_height": Config.CAMERA_HEIGHT
                 })
 
             return jsonify({
@@ -280,6 +307,8 @@ def create_app():
                 "threshold": current_threshold,
                 "camera_index": current_camera_index,
                 "camera_source": current_camera_index,
+                "camera_width": Config.CAMERA_WIDTH,
+                "camera_height": Config.CAMERA_HEIGHT,
                 "target_device": Config.TARGET_DEVICE,
                 "enable_facial_behavior": Config.ENABLE_FACIAL_BEHAVIOR,
                 "enable_pose_behavior": Config.ENABLE_POSE_BEHAVIOR,
