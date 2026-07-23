@@ -317,6 +317,59 @@
       border: 1px solid #10b981;
     }
 
+    /* Expandable Grouped Activity Table Styles */
+    .group-row {
+      cursor: pointer;
+      background-color: rgba(30, 41, 59, 0.4);
+      transition: background-color 0.15s ease;
+    }
+    .group-row:hover {
+      background-color: rgba(30, 41, 59, 0.85);
+    }
+    .event-count-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #10b981;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.55rem;
+      border-radius: 12px;
+      margin-left: 0.5rem;
+    }
+    .sub-log-row {
+      background-color: rgba(15, 23, 42, 0.65);
+    }
+    .sub-log-row td {
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
+    }
+    .sub-log-row td:first-child {
+      padding-left: 1.75rem;
+      position: relative;
+    }
+    .sub-log-row td:first-child::before {
+      content: '↳';
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent-color);
+      font-weight: bold;
+    }
+    .caret-icon {
+      display: inline-block;
+      transition: transform 0.2s ease;
+      font-size: 0.75rem;
+      margin-right: 0.4rem;
+      color: var(--text-muted);
+    }
+    .caret-icon.expanded {
+      transform: rotate(90deg);
+      color: var(--accent-color);
+    }
+
     /* Modal Dialog & Overlay Styles */
     .modal {
       display: none;
@@ -500,23 +553,18 @@
   </main>
 
   <!-- View Fullscreen Modal Dialog -->
-  <div id="stream-modal" class="modal" onclick="closeStreamModal(event)">
-    <div class="modal-content" style="max-width: 1000px;" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <h3>
-          <span class="status-dot"></span>
-          Real-Time AI Camera Feed — Fullscreen
-        </h3>
-        <button class="modal-close-btn" onclick="closeStreamModal()" aria-label="Close modal">&times;</button>
+  <div id="stream-modal" class="modal" style="padding: 0;" onclick="closeStreamModal(event)">
+    <div class="modal-content" style="max-width: 100vw; width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; border: none; padding: 0; background: #000; display: flex; flex-direction: column; position: relative;" onclick="event.stopPropagation()">
+      <!-- Floating Top Control Chip -->
+      <div style="position: absolute; top: 16px; right: 24px; z-index: 20; display: flex; gap: 0.75rem; align-items: center; background: rgba(11, 15, 25, 0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid var(--card-border); box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <span class="status-dot"></span>
+        <span style="font-size: 0.85rem; color: #f8fafc; font-weight: 500;">Live Camera Stream — Fullscreen</span>
+        <button class="modal-close-btn" onclick="closeStreamModal()" style="font-size: 1.1rem; line-height: 1; padding: 0 0.3rem; margin-left: 0.4rem;" aria-label="Exit Fullscreen">&times;</button>
       </div>
-      <div class="modal-body" style="margin-bottom: 0;">
-        <div class="video-container" style="aspect-ratio: 16 / 9; max-height: 75vh;">
-          <img id="fullscreen-video-feed" src="/video_feed" alt="Live Camera Stream Fullscreen">
-        </div>
-      </div>
-      <div class="modal-footer" style="margin-top: 1rem;">
-        <span style="font-size: 0.85rem; color: var(--text-muted); margin-right: auto;">Press ESC or click outside to exit</span>
-        <button class="btn btn-secondary" onclick="closeStreamModal()">Close Fullscreen</button>
+
+      <!-- Edge-to-Edge Video Feed -->
+      <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: #000; overflow: hidden;">
+        <img id="fullscreen-video-feed" src="/video_feed" style="width: 100%; height: 100%; object-fit: contain; display: block;" alt="Live Camera Stream Fullscreen">
       </div>
     </div>
   </div>
@@ -690,9 +738,20 @@
       }
     }
 
+    let expandedGroups = new Set();
+
+    function toggleGroup(groupId) {
+      if (expandedGroups.has(groupId)) {
+        expandedGroups.delete(groupId);
+      } else {
+        expandedGroups.add(groupId);
+      }
+      fetchActivityLogs();
+    }
+
     async function fetchActivityLogs() {
       try {
-        const res = await fetch('/api/activity_logs?limit=50');
+        const res = await fetch('/api/activity_logs?limit=100');
         const data = await res.json();
         const tbody = document.getElementById('activity-log-body');
 
@@ -702,32 +761,86 @@
             return;
           }
 
-          tbody.innerHTML = data.logs.map(log => {
-            let badgeClass = 'badge-recognized';
-            if (log.event_type.includes('DROWSINESS')) badgeClass = 'badge-drowsy';
-            else if (log.event_type.includes('LOITERING')) badgeClass = 'badge-loitering';
-            else if (log.event_type.includes('INTRUSION')) badgeClass = 'badge-intrusion';
+          // Group logs by person_name
+          const groupsMap = new Map();
+          data.logs.forEach(log => {
+            const name = log.person_name || 'Unknown';
+            if (!groupsMap.has(name)) {
+              groupsMap.set(name, []);
+            }
+            groupsMap.get(name).push(log);
+          });
 
-            const imgTag = log.snapshot_filename
-              ? `<img src="/activity_logs/snapshots/${log.snapshot_filename}" class="snapshot-thumb" alt="Snapshot">`
+          let html = '';
+          groupsMap.forEach((logs, personName) => {
+            const groupId = 'group-' + personName.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const isExpanded = expandedGroups.has(groupId);
+            const latestLog = logs[0];
+            const eventCount = logs.length;
+
+            // Summary of unique event badges
+            const uniqueEvents = Array.from(new Set(logs.map(l => l.event_type)));
+            const eventBadgesHtml = uniqueEvents.map(evt => {
+              let badgeClass = 'badge-recognized';
+              if (evt.includes('DROWSINESS')) badgeClass = 'badge-drowsy';
+              else if (evt.includes('LOITERING')) badgeClass = 'badge-loitering';
+              else if (evt.includes('INTRUSION')) badgeClass = 'badge-intrusion';
+              return `<span class="badge ${badgeClass}" style="margin-right: 4px; margin-bottom: 2px;">${evt}</span>`;
+            }).join('');
+
+            const imgTag = latestLog.snapshot_filename
+              ? `<img src="/activity_logs/snapshots/${latestLog.snapshot_filename}" class="snapshot-thumb" alt="Snapshot">`
               : `<div class="snapshot-thumb" style="display:flex;align-items:center;justify-content:center;color:#64748b;font-size:0.7rem;">N/A</div>`;
 
-            const beh = log.behavior_data || {};
-            const detailsStr = `
-              Focus: ${beh.attention_score ?? 'N/A'}% | Pose: ${beh.posture ?? 'N/A'}<br>
-              Gaze: ${beh.gaze_direction ?? 'Center'} | Dwell: ${beh.dwell_time_sec ?? 0}s
-            `;
-
-            return `
-              <tr>
+            // Master Group Row
+            html += `
+              <tr class="group-row" onclick="toggleGroup('${groupId}')">
                 <td>${imgTag}</td>
-                <td style="font-size: 0.85rem; color: var(--text-muted);">${log.timestamp}</td>
-                <td style="font-weight: 600;">${log.person_name}</td>
-                <td><span class="badge ${badgeClass}">${log.event_type}</span></td>
-                <td class="beh-details">${detailsStr}</td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">${latestLog.timestamp}</td>
+                <td style="font-weight: 600;">
+                  <span class="caret-icon ${isExpanded ? 'expanded' : ''}">▶</span>
+                  ${personName}
+                  <span class="event-count-pill">${eventCount} ${eventCount === 1 ? 'Event' : 'Events'}</span>
+                </td>
+                <td>${eventBadgesHtml}</td>
+                <td style="font-size: 0.85rem; font-weight: 500; color: var(--accent-color);">
+                  ${isExpanded ? '▲ Collapse' : '▼ View ' + eventCount + ' Details'}
+                </td>
               </tr>
             `;
-          }).join('');
+
+            // Expandable details rows for each sub-event
+            if (isExpanded) {
+              logs.forEach(log => {
+                let badgeClass = 'badge-recognized';
+                if (log.event_type.includes('DROWSINESS')) badgeClass = 'badge-drowsy';
+                else if (log.event_type.includes('LOITERING')) badgeClass = 'badge-loitering';
+                else if (log.event_type.includes('INTRUSION')) badgeClass = 'badge-intrusion';
+
+                const subImgTag = log.snapshot_filename
+                  ? `<img src="/activity_logs/snapshots/${log.snapshot_filename}" class="snapshot-thumb" style="width: 36px; height: 36px;" alt="Snapshot">`
+                  : `<div class="snapshot-thumb" style="width: 36px; height: 36px; display:flex;align-items:center;justify-content:center;color:#64748b;font-size:0.65rem;">N/A</div>`;
+
+                const beh = log.behavior_data || {};
+                const detailsStr = `
+                  Focus: ${beh.attention_score ?? 'N/A'}% | Pose: ${beh.posture ?? 'N/A'}<br>
+                  Gaze: ${beh.gaze_direction ?? 'Center'} | Dwell: ${beh.dwell_time_sec ?? 0}s
+                `;
+
+                html += `
+                  <tr class="sub-log-row">
+                    <td>${subImgTag}</td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">${log.timestamp}</td>
+                    <td style="font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">${log.person_name}</td>
+                    <td><span class="badge ${badgeClass}">${log.event_type}</span></td>
+                    <td class="beh-details" style="font-size: 0.75rem;">${detailsStr}</td>
+                  </tr>
+                `;
+              });
+            }
+          });
+
+          tbody.innerHTML = html;
         }
       } catch (err) {
         console.error('Failed to fetch activity logs:', err);
@@ -834,13 +947,33 @@
 
     // Modal Control Functions
     function openStreamModal() {
-      document.getElementById('stream-modal').style.display = 'flex';
+      const modal = document.getElementById('stream-modal');
+      modal.style.display = 'flex';
+      if (modal.requestFullscreen) {
+        modal.requestFullscreen().catch(() => {});
+      } else if (modal.webkitRequestFullscreen) {
+        modal.webkitRequestFullscreen();
+      }
     }
+
     function closeStreamModal(event) {
       if (!event || event.target === document.getElementById('stream-modal') || (event.currentTarget && (event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')))) {
         document.getElementById('stream-modal').style.display = 'none';
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          }
+        }
       }
     }
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        document.getElementById('stream-modal').style.display = 'none';
+      }
+    });
 
     function openEnrollModal() {
       document.getElementById('enroll-modal').style.display = 'flex';
