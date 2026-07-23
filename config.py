@@ -23,6 +23,8 @@ class Config:
     # Camera & Video Source (numerical index like 0, 1 or RTSP URL like "rtsp://user:pass@192.168.1.100:554/stream")
     _cam_env = os.getenv("FACE_APP_CAM_INDEX", "0")
     DEFAULT_CAMERA_SOURCE = int(_cam_env) if _cam_env.isdigit() else _cam_env
+    CAMERA_WIDTH = int(os.getenv("CAMERA_WIDTH", "1920"))
+    CAMERA_HEIGHT = int(os.getenv("CAMERA_HEIGHT", "1080"))
 
     # Behavioral Detection Settings
     ENABLE_FACIAL_BEHAVIOR = os.getenv("ENABLE_FACIAL_BEHAVIOR", "true").lower() == "true"

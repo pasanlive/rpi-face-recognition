@@ -30,8 +30,11 @@ class CameraWrapper:
       - RTSP / RTMP / HTTP / File video streams with background thread reading
     """
 
-    def __init__(self, source: Union[int, str] = 0):
+    def __init__(self, source: Union[int, str] = 0, width: Optional[int] = None, height: Optional[int] = None):
+        from config import Config
         self.source = source
+        self.width = width if width is not None else Config.CAMERA_WIDTH
+        self.height = height if height is not None else Config.CAMERA_HEIGHT
         self.picam2 = None
         self.cap = None
         self.is_picam = False
@@ -63,13 +66,13 @@ class CameraWrapper:
         # Try Picamera2 for numerical CSI camera sources
         if PICAMERA2_AVAILABLE and is_num:
             try:
-                logger.info("Attempting Picamera2 initialization for Raspberry Pi CSI Camera Module...")
+                logger.info(f"Attempting Picamera2 initialization for RPi CSI Camera ({self.width}x{self.height})...")
                 self.picam2 = Picamera2()
-                config = self.picam2.create_preview_configuration(main={"size": (640, 480)})
+                config = self.picam2.create_preview_configuration(main={"size": (self.width, self.height)})
                 self.picam2.configure(config)
                 self.picam2.start()
                 self.is_picam = True
-                logger.info("Picamera2 started successfully.")
+                logger.info(f"Picamera2 started successfully at {self.width}x{self.height}.")
                 return
             except Exception as e:
                 logger.warning(f"Picamera2 init failed ({e}). Falling back to OpenCV VideoCapture.")
@@ -82,19 +85,19 @@ class CameraWrapper:
                 self.is_picam = False
 
         # OpenCV VideoCapture fallback for USB webcams & RTSP streams
-        logger.info(f"Opening OpenCV VideoCapture source '{self.source}'...")
+        logger.info(f"Opening OpenCV VideoCapture source '{self.source}' ({self.width}x{self.height})...")
         if isinstance(self.source, int):
             self.cap = cv2.VideoCapture(self.source, cv2.CAP_V4L2)
             if self.cap and self.cap.isOpened():
                 self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
             if not self.cap or not self.cap.isOpened():
                 self.cap = cv2.VideoCapture(self.source)
                 if self.cap and self.cap.isOpened():
                     self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-                    self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                    self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                    self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+                    self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         else:
             # RTSP stream or video file
             self.cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG)

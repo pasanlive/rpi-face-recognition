@@ -8,8 +8,8 @@ from database.schema import SecurityZoneSchema
 logger = logging.getLogger(__name__)
 
 # Constants for default video size (used when generating default polygon)
-DEFAULT_VIDEO_WIDTH = 640
-DEFAULT_VIDEO_HEIGHT = 480
+DEFAULT_VIDEO_WIDTH = Config.CAMERA_WIDTH
+DEFAULT_VIDEO_HEIGHT = Config.CAMERA_HEIGHT
 
 _SECURITY_ZONE_TABLE = "security_zones"
 
