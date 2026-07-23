@@ -1,6 +1,6 @@
 import numpy as np
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Union
 import lancedb
 from config import Config
 from database.schema import SecurityZoneSchema
