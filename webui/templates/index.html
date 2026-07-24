@@ -486,15 +486,19 @@
       </div>
       <div class="chip-badge" style="background: rgba(15, 23, 42, 0.8);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
-        CPU: <span id="rpi-cpu-val" style="color:#10b981; font-weight:600; margin-left:2px;">--%</span>
+        CPU: <span id="rpi-cpu-val" style="color:#10b981; font-weight:600; margin-left:2px; min-width: 52px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">--%</span>
       </div>
       <div class="chip-badge" style="background: rgba(15, 23, 42, 0.8);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M6 19v-3b0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><path d="M6 5v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5"/><line x1="12" y1="10" x2="12" y2="14"/></svg>
-        RAM: <span id="rpi-ram-val" style="color:#3b82f6; font-weight:600; margin-left:2px;">--%</span>
+        RAM: <span id="rpi-ram-val" style="color:#3b82f6; font-weight:600; margin-left:2px; min-width: 52px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">--%</span>
       </div>
       <div class="chip-badge" style="background: rgba(15, 23, 42, 0.8);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
-        Temp: <span id="rpi-temp-val" style="color:#f59e0b; font-weight:600; margin-left:2px;">--°C</span>
+        Temp: <span id="rpi-temp-val" style="color:#f59e0b; font-weight:600; margin-left:2px; min-width: 58px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">--°C</span>
+      </div>
+      <div class="chip-badge" style="background: rgba(15, 23, 42, 0.8);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        NPU: <span id="rpi-npu-val" style="color:#a855f7; font-weight:600; margin-left:2px; min-width: 52px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">--%</span>
       </div>
     </div>
   </header>
@@ -557,7 +561,7 @@
         <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
             <span style="color: var(--text-muted); font-weight: 500;">CPU Utilization</span>
-            <span id="metric-cpu-text" style="font-weight: 700; color: #10b981;">0.0%</span>
+            <span id="metric-cpu-text" style="font-weight: 700; color: #10b981; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
           </div>
           <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
             <div id="metric-cpu-bar" style="width: 0%; height: 100%; background: #10b981; transition: width 0.4s ease;"></div>
@@ -568,7 +572,7 @@
         <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
             <span style="color: var(--text-muted); font-weight: 500;">RAM Memory</span>
-            <span id="metric-ram-text" style="font-weight: 700; color: #3b82f6;">0 MB / 0 MB (0%)</span>
+            <span id="metric-ram-text" style="font-weight: 700; color: #3b82f6; min-width: 175px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0 MB / 0 MB (0%)</span>
           </div>
           <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
             <div id="metric-ram-bar" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.4s ease;"></div>
@@ -579,10 +583,21 @@
         <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
             <span style="color: var(--text-muted); font-weight: 500;">SoC Temperature</span>
-            <span id="metric-temp-text" style="font-weight: 700; color: #f59e0b;">0.0 °C</span>
+            <span id="metric-temp-text" style="font-weight: 700; color: #f59e0b; min-width: 65px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0 °C</span>
           </div>
           <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
             <div id="metric-temp-bar" style="width: 0%; height: 100%; background: #f59e0b; transition: width 0.4s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Hailo-8 NPU Load -->
+        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+            <span style="color: var(--text-muted); font-weight: 500;">Hailo-8 NPU Load</span>
+            <span id="metric-npu-text" style="font-weight: 700; color: #a855f7; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+            <div id="metric-npu-bar" style="width: 0%; height: 100%; background: #a855f7; transition: width 0.4s ease;"></div>
           </div>
         </div>
 
@@ -590,10 +605,10 @@
         <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
             <span style="color: var(--text-muted); font-weight: 500;">Disk Storage</span>
-            <span id="metric-disk-text" style="font-weight: 700; color: #a855f7;">0.0%</span>
+            <span id="metric-disk-text" style="font-weight: 700; color: #ec4899; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
           </div>
           <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
-            <div id="metric-disk-bar" style="width: 0%; height: 100%; background: #a855f7; transition: width 0.4s ease;"></div>
+            <div id="metric-disk-bar" style="width: 0%; height: 100%; background: #ec4899; transition: width 0.4s ease;"></div>
           </div>
         </div>
 
@@ -1057,6 +1072,15 @@
             const disk = data.disk_percent || 0;
             document.getElementById('metric-disk-text').textContent = disk + '%';
             document.getElementById('metric-disk-bar').style.width = Math.min(100, disk) + '%';
+
+            // NPU
+            const npu = data.npu_percent || 0;
+            const npuVal = document.getElementById('rpi-npu-val');
+            if (npuVal) npuVal.textContent = npu + '%';
+            const npuText = document.getElementById('metric-npu-text');
+            if (npuText) npuText.textContent = npu + '%';
+            const npuBar = document.getElementById('metric-npu-bar');
+            if (npuBar) npuBar.style.width = Math.min(100, npu) + '%';
           }
         }
       } catch (e) {
@@ -1361,6 +1385,14 @@
           const disk = data.disk_percent || 0;
           document.getElementById('metric-disk-text').textContent = disk + '%';
           document.getElementById('metric-disk-bar').style.width = Math.min(100, disk) + '%';
+
+          const npu = data.npu_percent || 0;
+          const npuVal = document.getElementById('rpi-npu-val');
+          if (npuVal) npuVal.textContent = npu + '%';
+          const npuText = document.getElementById('metric-npu-text');
+          if (npuText) npuText.textContent = npu + '%';
+          const npuBar = document.getElementById('metric-npu-bar');
+          if (npuBar) npuBar.style.width = Math.min(100, npu) + '%';
         }
       });
 
