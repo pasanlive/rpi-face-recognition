@@ -103,6 +103,14 @@ def create_app():
     def index():
         return render_template('index.html')
 
+    @app.route('/stream')
+    def stream_page():
+        return render_template('stream.html')
+
+    @app.route('/logs')
+    def logs_page():
+        return render_template('logs.html')
+
     @app.route('/video_feed')
     def video_feed():
         return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')

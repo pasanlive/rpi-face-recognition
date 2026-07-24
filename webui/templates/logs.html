@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Logs & Audit Dashboard — Monitor 2 Display</title>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #151c2c;
+      --card-border: #1e293b;
+      --accent-color: #10b981;
+      --danger-color: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --input-bg: #0f172a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      padding: 1.5rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+    h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .btn {
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.85rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background-color: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-main); }
+    .btn-danger { background-color: var(--danger-color); }
+    
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      font-weight: 600;
+    }
+    .table-container {
+      overflow-x: auto;
+      overflow-y: auto;
+      flex: 1;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th {
+      background-color: var(--input-bg);
+      padding: 0.85rem 1rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--card-border);
+    }
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--card-border);
+      vertical-align: middle;
+    }
+    .snapshot-thumb {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+    }
+    .badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .badge-recognized { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; }
+    .badge-drowsy { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
+    .badge-loitering { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
+    .badge-intrusion { background: rgba(225, 29, 72, 0.2); color: #fda4af; border: 1px solid #e11d48; }
+
+    .group-row { cursor: pointer; background: rgba(30, 41, 59, 0.4); }
+    .group-row:hover { background: rgba(30, 41, 59, 0.85); }
+    .event-count-pill {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #10b981;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.55rem;
+      border-radius: 12px;
+      margin-left: 0.5rem;
+    }
+    .sub-log-row { background: rgba(15, 23, 42, 0.65); }
+    .sub-log-row td { border-bottom: 1px dashed rgba(255, 255, 255, 0.07); }
+    .sub-log-row td:first-child { padding-left: 1.75rem; position: relative; }
+    .sub-log-row td:first-child::before { content: '↳'; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--accent-color); font-weight: bold; }
+    .caret-icon { display: inline-block; transition: transform 0.2s ease; font-size: 0.75rem; margin-right: 0.4rem; color: var(--text-muted); }
+    .caret-icon.expanded { transform: rotate(90deg); color: var(--accent-color); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Monitor 2 — System Activity & Event Logs Audit Dashboard
+    </h1>
+    <div style="display: flex; gap: 0.75rem;">
+      <button class="btn btn-secondary" onclick="fetchActivityLogs()">Refresh Logs</button>
+      <a href="/api/activity_logs/export" class="btn btn-secondary">Export CSV</a>
+      <button class="btn btn-danger" onclick="clearActivityLogs()">Clear Logs</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Snapshot</th>
+            <th>Date & Time</th>
+            <th>Person Name</th>
+            <th>Event Summary</th>
+            <th>Behavioral Metrics</th>
+          </tr>
+        </thead>
+        <tbody id="activity-log-body">
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-muted);">Loading activity logs...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let expandedGroups = new Set();
+
+    function toggleGroup(groupId) {
+      if (expandedGroups.has(groupId)) {
+        expandedGroups.delete(groupId);
+      } else {
+        expandedGroups.add(groupId);
+      }
+      fetchActivityLogs();
+    }
+
+    async function fetchActivityLogs() {
+      try {
+        const res = await fetch('/api/activity_logs?limit=200');
+        const data = await res.json();
+        const tbody = document.getElementById('activity-log-body');
+
+        if (data.success && data.logs) {
+          if (data.logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No activity logs recorded yet.</td></tr>';
+            return;
+          }
+
+          const groupsMap = new Map();
+          data.logs.forEach(log => {
+            const name = log.person_name || 'Unknown';
+            if (!groupsMap.has(name)) {
+              groupsMap.set(name, []);
+            }
+            groupsMap.get(name).push(log);
+          });
+
+          let html = '';
+          groupsMap.forEach((logs, personName) => {
+            const groupId = 'group-' + personName.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const isExpanded = expandedGroups.has(groupId);
+            const latestLog = logs[0];
+            const eventCount = logs.length;
+
+            const uniqueEvents = Array.from(new Set(logs.map(l => l.event_type)));
+            const eventBadgesHtml = uniqueEvents.map(evt => {
+              let badgeClass = 'badge-recognized';
+              if (evt.includes('DROWSINESS')) badgeClass = 'badge-drowsy';
+              else if (evt.includes('LOITERING')) badgeClass = 'badge-loitering';
+              else if (evt.includes('INTRUSION')) badgeClass = 'badge-intrusion';
+              return `<span class="badge ${badgeClass}" style="margin-right: 4px;">${evt}</span>`;
+            }).join('');
+
+            const imgTag = latestLog.snapshot_filename
+              ? `<img src="/activity_logs/snapshots/${latestLog.snapshot_filename}" class="snapshot-thumb" alt="Snapshot">`
+              : `<div class="snapshot-thumb" style="display:flex;align-items:center;justify-content:center;color:#64748b;font-size:0.7rem;">N/A</div>`;
+
+            html += `
+              <tr class="group-row" onclick="toggleGroup('${groupId}')">
+                <td>${imgTag}</td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">${latestLog.timestamp}</td>
+                <td style="font-weight: 600;">
+                  <span class="caret-icon ${isExpanded ? 'expanded' : ''}">▶</span>
+                  ${personName}
+                  <span class="event-count-pill">${eventCount} ${eventCount === 1 ? 'Event' : 'Events'}</span>
+                </td>
+                <td>${eventBadgesHtml}</td>
+                <td style="font-size: 0.85rem; font-weight: 500; color: var(--accent-color);">
+                  ${isExpanded ? '▲ Collapse' : '▼ View ' + eventCount + ' Details'}
+                </td>
+              </tr>
+            `;
+
+            if (isExpanded) {
+              logs.forEach(log => {
+                let badgeClass = 'badge-recognized';
+                if (log.event_type.includes('DROWSINESS')) badgeClass = 'badge-drowsy';
+                else if (log.event_type.includes('LOITERING')) badgeClass = 'badge-loitering';
+                else if (log.event_type.includes('INTRUSION')) badgeClass = 'badge-intrusion';
+
+                const subImgTag = log.snapshot_filename
+                  ? `<img src="/activity_logs/snapshots/${log.snapshot_filename}" class="snapshot-thumb" style="width: 36px; height: 36px;" alt="Snapshot">`
+                  : `<div class="snapshot-thumb" style="width: 36px; height: 36px; display:flex;align-items:center;justify-content:center;color:#64748b;font-size:0.65rem;">N/A</div>`;
+
+                const beh = log.behavior_data || {};
+                const detailsStr = `
+                  Focus: ${beh.attention_score ?? 'N/A'}% | Pose: ${beh.posture ?? 'N/A'} | Gaze: ${beh.gaze_direction ?? 'Center'} | Dwell: ${beh.dwell_time_sec ?? 0}s
+                `;
+
+                html += `
+                  <tr class="sub-log-row">
+                    <td>${subImgTag}</td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">${log.timestamp}</td>
+                    <td style="font-weight: 500; font-size: 0.85rem; color: var(--text-muted);">${log.person_name}</td>
+                    <td><span class="badge ${badgeClass}">${log.event_type}</span></td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">${detailsStr}</td>
+                  </tr>
+                `;
+              });
+            }
+          });
+
+          tbody.innerHTML = html;
+        }
+      } catch (err) {
+        console.error('Failed to fetch activity logs:', err);
+      }
+    }
+
+    async function clearActivityLogs() {
+      if (!confirm('Are you sure you want to clear all activity logs and snapshot images?')) return;
+      try {
+        const res = await fetch('/api/activity_logs', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          fetchActivityLogs();
+        }
+      } catch (err) {
+        console.error('Clear logs failed:', err);
+      }
+    }
+
+    fetchActivityLogs();
+    setInterval(fetchActivityLogs, 4000);
+  </script>
+</body>
+</html>
