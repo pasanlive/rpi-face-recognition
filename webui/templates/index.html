@@ -1125,13 +1125,11 @@
       }
     }
 
-    // Initial load and periodic refresh
+    // Initial single load on startup (subsequent telemetry and event updates handled 100% via WebSockets)
     loadSettings();
     fetchIdentities();
     fetchActivityLogs();
     fetchSystemStats();
-    setInterval(fetchActivityLogs, 4000); // Auto-refresh log table every 4s
-    setInterval(fetchSystemStats, 2000);   // Auto-refresh hardware telemetry every 2s
 
     // Modal Control Functions
     function openStreamModal() {
