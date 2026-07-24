@@ -479,7 +479,7 @@
       <span class="logo-badge">RPi5 + AI Hat+</span>
       <h1>Face & Behavioral Recognition Dashboard (26 TOPS)</h1>
     </div>
-    <div class="header-status" style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
+    <div class="header-status" onclick="openResourceModal()" style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; cursor: pointer; padding: 0.2rem 0.5rem; border-radius: 8px; transition: background 0.2s ease;" title="Click to view detailed Raspberry Pi Hardware Resource Telemetry" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
       <div class="chip-badge">
         <span class="status-dot"></span>
         Hailo-8 NPU Engine Active
@@ -523,8 +523,8 @@
           Configure Security Zone
         </button>
         <button class="btn btn-secondary" onclick="openEnrollModal()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-          Enroll New Identity
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+          Enroll Identity
         </button>
         <button class="btn btn-secondary" onclick="openIdentitiesModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -542,76 +542,6 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Pop-out Logs (Monitor 2)
         </button>
-      </div>
-    </div>
-
-    <!-- Raspberry Pi Hardware Resource Telemetry Card -->
-    <div class="card">
-      <div class="card-title">
-        <span style="display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
-          Raspberry Pi Hardware Resource Usage
-        </span>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">Real-Time System Telemetry (RPi 5 + Hailo-8)</span>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
-        
-        <!-- CPU Utilization -->
-        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
-            <span style="color: var(--text-muted); font-weight: 500;">CPU Utilization</span>
-            <span id="metric-cpu-text" style="font-weight: 700; color: #10b981; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
-          </div>
-          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
-            <div id="metric-cpu-bar" style="width: 0%; height: 100%; background: #10b981; transition: width 0.4s ease;"></div>
-          </div>
-        </div>
-
-        <!-- RAM Memory -->
-        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
-            <span style="color: var(--text-muted); font-weight: 500;">RAM Memory</span>
-            <span id="metric-ram-text" style="font-weight: 700; color: #3b82f6; min-width: 175px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0 MB / 0 MB (0%)</span>
-          </div>
-          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
-            <div id="metric-ram-bar" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.4s ease;"></div>
-          </div>
-        </div>
-
-        <!-- SoC CPU Temperature -->
-        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
-            <span style="color: var(--text-muted); font-weight: 500;">SoC Temperature</span>
-            <span id="metric-temp-text" style="font-weight: 700; color: #f59e0b; min-width: 65px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0 °C</span>
-          </div>
-          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
-            <div id="metric-temp-bar" style="width: 0%; height: 100%; background: #f59e0b; transition: width 0.4s ease;"></div>
-          </div>
-        </div>
-
-        <!-- Hailo-8 NPU Load -->
-        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
-            <span style="color: var(--text-muted); font-weight: 500;">Hailo-8 NPU Load</span>
-            <span id="metric-npu-text" style="font-weight: 700; color: #a855f7; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
-          </div>
-          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
-            <div id="metric-npu-bar" style="width: 0%; height: 100%; background: #a855f7; transition: width 0.4s ease;"></div>
-          </div>
-        </div>
-
-        <!-- Disk Storage -->
-        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
-            <span style="color: var(--text-muted); font-weight: 500;">Disk Storage</span>
-            <span id="metric-disk-text" style="font-weight: 700; color: #ec4899; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
-          </div>
-          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
-            <div id="metric-disk-bar" style="width: 0%; height: 100%; background: #ec4899; transition: width 0.4s ease;"></div>
-          </div>
-        </div>
-
       </div>
     </div>
 
@@ -807,11 +737,85 @@
           </span>
         </div>
       </div>
+  <!-- Raspberry Pi Hardware Resource Telemetry Modal Dialog -->
+  <div id="resource-modal" class="modal" onclick="closeResourceModal(event)">
+    <div class="modal-content" style="max-width: 620px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
+          Raspberry Pi Hardware Resource Usage
+        </h3>
+        <button class="modal-close-btn" onclick="closeResourceModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Real-Time System Hardware Performance & Thermal Telemetry (RPi 5 + Hailo-8 NPU 26 TOPS)
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 1.1rem;">
+          <!-- CPU Utilization -->
+          <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+              <span style="color: var(--text-muted); font-weight: 500;">CPU Utilization</span>
+              <span id="metric-cpu-text" style="font-weight: 700; color: #10b981; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+              <div id="metric-cpu-bar" style="width: 0%; height: 100%; background: #10b981; transition: width 0.4s ease;"></div>
+            </div>
+          </div>
+
+          <!-- RAM Memory -->
+          <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+              <span style="color: var(--text-muted); font-weight: 500;">RAM Memory</span>
+              <span id="metric-ram-text" style="font-weight: 700; color: #3b82f6; min-width: 175px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0 MB / 0 MB (0%)</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+              <div id="metric-ram-bar" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.4s ease;"></div>
+            </div>
+          </div>
+
+          <!-- SoC CPU Temperature -->
+          <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+              <span style="color: var(--text-muted); font-weight: 500;">SoC Temperature</span>
+              <span id="metric-temp-text" style="font-weight: 700; color: #f59e0b; min-width: 65px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0 °C</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+              <div id="metric-temp-bar" style="width: 0%; height: 100%; background: #f59e0b; transition: width 0.4s ease;"></div>
+            </div>
+          </div>
+
+          <!-- Hailo-8 NPU Load -->
+          <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+              <span style="color: var(--text-muted); font-weight: 500;">Hailo-8 NPU Load</span>
+              <span id="metric-npu-text" style="font-weight: 700; color: #a855f7; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+              <div id="metric-npu-bar" style="width: 0%; height: 100%; background: #a855f7; transition: width 0.4s ease;"></div>
+            </div>
+          </div>
+
+          <!-- Disk Storage -->
+          <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+              <span style="color: var(--text-muted); font-weight: 500;">Disk Storage</span>
+              <span id="metric-disk-text" style="font-weight: 700; color: #ec4899; min-width: 60px; display: inline-block; text-align: right; font-variant-numeric: tabular-nums;">0.0%</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+              <div id="metric-disk-bar" style="width: 0%; height: 100%; background: #ec4899; transition: width 0.4s ease;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeSettingsModal()">Close</button>
+        <button class="btn btn-secondary" onclick="closeResourceModal()">Close</button>
       </div>
     </div>
   </div>
+
   <div id="toast" class="toast">Action Complete</div>
 
   <script>
@@ -1188,6 +1192,15 @@
       }
     }
 
+    function openResourceModal() {
+      document.getElementById('resource-modal').style.display = 'flex';
+    }
+    function closeResourceModal(event) {
+      if (!event || event.target === document.getElementById('resource-modal') || (event.currentTarget && (event.currentTarget.classList.contains('modal-close-btn') || event.currentTarget.classList.contains('btn-secondary')))) {
+        document.getElementById('resource-modal').style.display = 'none';
+      }
+    }
+
     // Security Zone Modal & Canvas Interactive Drawing
     let zonePoints = [];
     let bgSnapshotImg = null;
@@ -1439,6 +1452,7 @@
         document.getElementById('enroll-modal').style.display = 'none';
         document.getElementById('identities-modal').style.display = 'none';
         document.getElementById('settings-modal').style.display = 'none';
+        document.getElementById('resource-modal').style.display = 'none';
       }
     });
   </script>
