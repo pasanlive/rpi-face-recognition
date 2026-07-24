@@ -30,12 +30,13 @@ class ActivityLogger:
     Includes automated cooldown throttling to prevent duplicate logs on every frame.
     """
 
-    def __init__(self, db_uri: str = Config.DB_URI, snapshot_dir: str = Config.SNAPSHOT_DIR):
+    def __init__(self, db_uri: str = Config.DB_URI, snapshot_dir: str = Config.SNAPSHOT_DIR, on_log_callback=None):
         self.db_uri = db_uri
         self.snapshot_dir = snapshot_dir
         self.table_name = Config.LOG_TABLE_NAME
         self.last_log_times: Dict[str, float] = {}
         self.cooldown_sec = Config.LOG_COOLDOWN_SEC
+        self.on_log_callback = on_log_callback
 
         os.makedirs(self.snapshot_dir, exist_ok=True)
         os.makedirs(self.db_uri, exist_ok=True)
@@ -109,6 +110,11 @@ class ActivityLogger:
         try:
             self.table.add([log_entry])
             logger.info(f"Activity Logged [{event_type}]: Person='{person_name}' at {timestamp_str}")
+            if self.on_log_callback and callable(self.on_log_callback):
+                try:
+                    self.on_log_callback(log_entry)
+                except Exception as cb_err:
+                    logger.error(f"Error in on_log_callback: {cb_err}")
             return log_entry
         except Exception as e:
             logger.error(f"Failed to write activity log entry to LanceDB: {e}")

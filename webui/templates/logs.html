@@ -294,5 +294,22 @@
     fetchActivityLogs();
     setInterval(fetchActivityLogs, 4000);
   </script>
+
+  <!-- Socket.IO WebSocket Client Library -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    if (typeof io !== 'undefined') {
+      const socket = io();
+      socket.on('connect', () => {
+        console.log('Connected to Real-Time WebSocket Server on Monitor 2');
+      });
+
+      socket.on('new_activity_event', (log) => {
+        if (log) {
+          fetchActivityLogs();
+        }
+      });
+    }
+  </script>
 </body>
 </html>

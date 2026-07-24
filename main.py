@@ -117,12 +117,15 @@ def cmd_delete(args):
 
 def cmd_web(args):
     """
-    Launch Flask Web UI Dashboard.
+    Launch Flask Web UI Dashboard with Real-Time WebSocket Server.
     """
     from webui.app import create_app
     app = create_app()
-    logger.info(f"Launching Web UI Dashboard at http://{args.host}:{args.port}...")
-    app.run(host=args.host, port=args.port, debug=False)
+    logger.info(f"Launching WebSocket Web UI Dashboard at http://{args.host}:{args.port}...")
+    if hasattr(app, "socketio") and app.socketio is not None:
+        app.socketio.run(app, host=args.host, port=args.port, debug=False)
+    else:
+        app.run(host=args.host, port=args.port, debug=False)
 
 def main():
     parser = argparse.ArgumentParser(description="Raspberry Pi 5 Native Hailo-8 Face Recognition App")

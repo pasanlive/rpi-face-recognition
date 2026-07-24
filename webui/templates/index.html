@@ -1321,5 +1321,57 @@
       }
     });
   </script>
+  
+  <!-- Socket.IO WebSocket Client Library -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    if (typeof io !== 'undefined') {
+      const socket = io();
+      socket.on('connect', () => {
+        console.log('Connected to WebSocket Server (Instant Real-Time Events & Telemetry Active)');
+      });
+
+      // Real-Time System Metrics Push
+      socket.on('system_stats', (data) => {
+        if (data) {
+          const cpu = data.cpu_percent || 0;
+          document.getElementById('rpi-cpu-val').textContent = cpu + '%';
+          document.getElementById('metric-cpu-text').textContent = cpu + '%';
+          document.getElementById('metric-cpu-bar').style.width = Math.min(100, cpu) + '%';
+
+          const ramPct = data.ram_percent || 0;
+          const ramUsedGb = ((data.ram_used_mb || 0) / 1024).toFixed(1);
+          const ramTotalGb = ((data.ram_total_mb || 0) / 1024).toFixed(1);
+          document.getElementById('rpi-ram-val').textContent = ramPct + '%';
+          document.getElementById('metric-ram-text').textContent = `${ramUsedGb} GB / ${ramTotalGb} GB (${ramPct}%)`;
+          document.getElementById('metric-ram-bar').style.width = Math.min(100, ramPct) + '%';
+
+          const temp = data.cpu_temp || 0;
+          document.getElementById('rpi-temp-val').textContent = temp + '°C';
+          document.getElementById('metric-temp-text').textContent = temp + ' °C';
+          const tempPct = Math.min(100, Math.max(0, (temp / 85.0) * 100));
+          const tempBar = document.getElementById('metric-temp-bar');
+          if (tempBar) {
+            tempBar.style.width = tempPct + '%';
+            if (temp > 75) tempBar.style.background = '#ef4444';
+            else if (temp > 65) tempBar.style.background = '#f59e0b';
+            else tempBar.style.background = '#10b981';
+          }
+
+          const disk = data.disk_percent || 0;
+          document.getElementById('metric-disk-text').textContent = disk + '%';
+          document.getElementById('metric-disk-bar').style.width = Math.min(100, disk) + '%';
+        }
+      });
+
+      // Real-Time Instant Activity Event Push
+      socket.on('new_activity_event', (log) => {
+        if (log) {
+          showToast(`⚡ Instant Event: ${log.event_type} (${log.person_name})`);
+          fetchActivityLogs();
+        }
+      });
+    }
+  </script>
 </body>
 </html>

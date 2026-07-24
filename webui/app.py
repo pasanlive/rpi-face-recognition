@@ -19,15 +19,68 @@ from activity_logger.logger import ActivityLogger
 from camera_wrapper import CameraWrapper
 from system_metrics import get_system_metrics
 
+try:
+    from flask_socketio import SocketIO, emit
+    HAS_SOCKETIO = True
+except ImportError:
+    HAS_SOCKETIO = False
+
 logger = logging.getLogger(__name__)
 
 def create_app():
     app = Flask(__name__, template_folder="templates")
+    socketio = None
+    if HAS_SOCKETIO:
+        socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+        app.socketio = socketio
     
     # Initialize Core Components
     logger.info("Initializing Face & Behavioral Recognition Pipeline for Web UI...")
     db_manager = FaceDatabaseManager()
     activity_logger = ActivityLogger()
+
+    # Instant WebSocket Activity Log Event Emitter
+    if socketio:
+        def notify_websocket_log_event(log_entry):
+            try:
+                beh_data = {}
+                b_json = log_entry.get("behavior_json")
+                if isinstance(b_json, str) and b_json:
+                    try:
+                        beh_data = json.loads(b_json)
+                    except Exception:
+                        pass
+                else:
+                    beh_data = log_entry.get("behavior_data", {})
+
+                payload = {
+                    "log_id": str(log_entry.get("log_id", "")),
+                    "timestamp": str(log_entry.get("timestamp", "")),
+                    "person_name": str(log_entry.get("person_name", "")),
+                    "event_type": str(log_entry.get("event_type", "")),
+                    "snapshot_filename": str(log_entry.get("snapshot_filename", "")),
+                    "behavior_data": beh_data
+                }
+                socketio.emit("new_activity_event", payload)
+            except Exception as err:
+                logger.error(f"Error broadcasting WebSocket activity log: {err}")
+
+        activity_logger.on_log_callback = notify_websocket_log_event
+
+        # Background thread pushing system metrics every 1.5s
+        import threading
+        def _stats_emitter_loop():
+            while True:
+                time.sleep(1.5)
+                try:
+                    metrics = get_system_metrics()
+                    metrics["target_device"] = Config.TARGET_DEVICE
+                    socketio.emit("system_stats", metrics)
+                except Exception as e:
+                    logger.debug(f"Error emitting stats: {e}")
+
+        stats_thread = threading.Thread(target=_stats_emitter_loop, daemon=True)
+        stats_thread.start()
     
     # Global State
     current_camera_index = Config.DEFAULT_CAMERA_SOURCE
