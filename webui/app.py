@@ -307,19 +307,20 @@ def create_app():
         ret, buffer = cv2.imencode('.jpg', blank)
         return Response(buffer.tobytes(), mimetype='image/jpeg')
 
-    # Security Zone API
+    # Multi-Zone Security API
     @app.route('/api/security_zone', methods=['GET', 'POST'], strict_slashes=False)
     @app.route('/api/security_zone/<path:camera_id>', methods=['GET', 'POST'], strict_slashes=False)
     def handle_security_zone(camera_id=None):
         cam = camera_id if camera_id is not None else current_camera_index
         if request.method == 'GET':
             try:
-                polygon = security_zone.load_security_zone(cam)
-                polygon_list = polygon.tolist()
+                zones = security_zone.load_multi_zones(cam)
+                primary_poly = zones[0]["polygon"] if zones else []
                 return jsonify({
                     "success": True,
-                    "polygon": polygon_list,
-                    "points": polygon_list,
+                    "zones": zones,
+                    "polygon": primary_poly,
+                    "points": primary_poly,
                     "camera_id": str(cam),
                     "camera_width": Config.CAMERA_WIDTH,
                     "camera_height": Config.CAMERA_HEIGHT
@@ -330,9 +331,14 @@ def create_app():
         elif request.method == 'POST':
             try:
                 data = request.json or {}
+                if "zones" in data and isinstance(data["zones"], list):
+                    zones = data["zones"]
+                    security_zone.save_multi_zones(cam, zones)
+                    return jsonify({"success": True, "message": "Multi-zones saved successfully", "zones": zones})
+                
                 polygon = data.get('polygon', data.get('points'))
                 if not polygon:
-                    return jsonify({"success": False, "error": "Polygon data missing"}), 400
+                    return jsonify({"success": False, "error": "Polygon or zones data missing"}), 400
                 if not security_zone.validate_polygon(polygon):
                     return jsonify({"success": False, "error": "Invalid polygon format"}), 400
                 security_zone.save_security_zone(cam, polygon)

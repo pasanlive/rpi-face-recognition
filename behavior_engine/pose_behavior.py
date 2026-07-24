@@ -5,6 +5,9 @@ import logging
 from typing import Dict, Any, List, Tuple, Optional
 from config import Config
 
+from .security_zone import load_security_zone, load_multi_zones, find_zone_for_point, ZoneTransitionTracker
+from .object_tracker import ObjectCarryingTracker
+
 logger = logging.getLogger(__name__)
 
 class TrackedPerson:
@@ -26,29 +29,21 @@ class TrackedPerson:
 class PoseBehaviorAnalyzer:
     """
     Analyzes Body Posture (Standing, Sitting, Fall Detection), Loitering Dwell Time,
-    and Virtual Security Zone Intrusion.
+    Multi-Zone Security Intrusion, and Cross-Zone Movements.
     """
 
     def __init__(self, get_camera_index_callable=None):
-        """Initialize PoseBehaviorAnalyzer.
-
-        Args:
-            get_camera_index_callable: Callable returning the current active camera index.
-                If None, defaults to returning 0.
-        """
         self.next_track_id = 1
         self.tracked_persons: Dict[int, TrackedPerson] = {}
         self._get_camera_index = get_camera_index_callable or (lambda: 0)
-        # Load security zone polygon for the current camera
+        self.zone_transition_tracker = ZoneTransitionTracker()
+        self.object_tracker = ObjectCarryingTracker()
         self._load_security_zone()
 
     def _load_security_zone(self):
-        """Load the security zone polygon for the current camera.
-        The polygon is stored as an (N,2) int32 numpy array.
-        """
         cam_idx = self._get_camera_index()
-        from .security_zone import load_security_zone
         self.security_zone_polygon = load_security_zone(cam_idx)
+        self.multi_zones = load_multi_zones(cam_idx)
 
     def _reload_security_zone_if_needed(self):
         """Reload polygon if the active camera index has changed.

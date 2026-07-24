@@ -663,29 +663,62 @@
     </div>
   </div>
 
-  <!-- Configure Security Zone Modal Dialog -->
+  <!-- Configure Multi-Zone Security & Room Manager Modal Dialog -->
   <div id="security-zone-modal" class="modal" onclick="closeSecurityZoneModal(event)">
-    <div class="modal-content" style="max-width: 720px;" onclick="event.stopPropagation()">
+    <div class="modal-content" style="max-width: 880px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning-color)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Configure Security Zone Boundary
+          Multi-Zone Security & Room Manager
         </h3>
         <button class="modal-close-btn" onclick="closeSecurityZoneModal()" aria-label="Close modal">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.5;">
-          Click inside the frame boundary to place vertices defining the restricted intrusion detection zone. Minimum 3 points required.
-        </p>
-        <div style="position: relative; width: 100%; aspect-ratio: 4 / 3; background: #000; border: 1px solid var(--card-border); border-radius: 8px; overflow: hidden;">
-          <canvas id="security-zone-canvas" width="640" height="480" style="width: 100%; height: 100%; cursor: crosshair; display: block;"></canvas>
+        
+        <!-- Zone Selection & Control Toolbar -->
+        <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; background: var(--input-bg); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border);">
+          <div style="flex: 1; min-width: 160px;">
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Active Zone</label>
+            <select id="zone-select" class="form-control" onchange="onZoneSelected()"></select>
+          </div>
+          <div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Zone Name</label>
+            <input type="text" id="zone-name-input" class="form-control" style="width: 130px;" oninput="updateCurrentZoneMeta()">
+          </div>
+          <div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Security Level</label>
+            <select id="zone-sec-level" class="form-control" style="width: 110px;" onchange="updateCurrentZoneMeta()">
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+              <option value="Restricted">Restricted</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Color</label>
+            <input type="color" id="zone-color-input" style="height: 38px; width: 44px; padding: 2px; background: transparent; border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer;" onchange="updateCurrentZoneMeta()">
+          </div>
+          <div style="display: flex; gap: 0.4rem; align-self: flex-end;">
+            <button class="btn" onclick="addNewZone()" style="padding: 0.5rem 0.75rem; font-size: 0.8rem;">+ Add Zone</button>
+            <button class="btn btn-danger" onclick="deleteSelectedZone()" style="padding: 0.5rem 0.75rem; font-size: 0.8rem;">Delete</button>
+          </div>
         </div>
+
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          Click inside the camera frame to place polygon vertices for the selected zone. Minimum 3 points per zone.
+        </p>
+
+        <!-- Interactive Canvas with Live Snapshot Background -->
+        <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border: 1px solid var(--card-border); border-radius: 8px; overflow: hidden;">
+          <canvas id="security-zone-canvas" width="1920" height="1080" style="width: 100%; height: 100%; cursor: crosshair; display: block;"></canvas>
+        </div>
+
         <div id="zone-error" style="color: var(--danger-color); font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.25rem; font-weight: 500;"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="resetZonePoints()" style="margin-right: auto;">Clear Points</button>
+        <button class="btn btn-secondary" onclick="resetCurrentZonePoints()" style="margin-right: auto;">Clear Polygon</button>
         <button class="btn btn-secondary" onclick="closeSecurityZoneModal()">Cancel</button>
-        <button class="btn" onclick="saveSecurityZone()">Save Boundary</button>
+        <button class="btn" onclick="saveAllMultiZones()">Save All Multi-Zones</button>
       </div>
     </div>
   </div>
@@ -1159,29 +1192,31 @@
     let zonePoints = [];
     let bgSnapshotImg = null;
 
-    function openSecurityZoneModal() {
-      document.getElementById('security-zone-modal').style.display = 'flex';
-      zonePoints = [];
+    async function openSecurityZoneModal() {
+      const modal = document.getElementById('security-zone-modal');
+      modal.style.display = 'flex';
       document.getElementById('zone-error').textContent = '';
-      
-      const canvas = document.getElementById('security-zone-canvas');
+
       bgSnapshotImg = new Image();
-      bgSnapshotImg.onload = function() {
-        drawPolygon();
-      };
+      bgSnapshotImg.onload = () => drawMultiZonesCanvas();
       bgSnapshotImg.src = '/api/camera_snapshot?t=' + Date.now();
 
-      canvas.onclick = function(event) {
+      const canvas = document.getElementById('security-zone-canvas');
+      canvas.onclick = (event) => {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         const x = Math.round((event.clientX - rect.left) * scaleX);
         const y = Math.round((event.clientY - rect.top) * scaleY);
-        zonePoints.push([x, y]);
-        drawPolygon();
+        
+        if (multiZones.length === 0) addNewZone();
+        const currentZone = multiZones[selectedZoneIndex];
+        if (!currentZone.polygon) currentZone.polygon = [];
+        currentZone.polygon.push([x, y]);
+        drawMultiZonesCanvas();
       };
 
-      loadSecurityZone();
+      await loadMultiZones();
     }
 
     function closeSecurityZoneModal(event) {
@@ -1190,21 +1225,94 @@
       }
     }
 
-    function resetZonePoints() {
-      zonePoints = [];
-      document.getElementById('zone-error').textContent = '';
-      drawPolygon();
+    function renderZoneSelectOptions() {
+      const select = document.getElementById('zone-select');
+      select.innerHTML = '';
+      multiZones.forEach((z, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `${z.name} (${z.security_level})`;
+        if (idx === selectedZoneIndex) opt.selected = true;
+        select.appendChild(opt);
+      });
+      if (multiZones.length > 0) {
+        const curr = multiZones[selectedZoneIndex];
+        document.getElementById('zone-name-input').value = curr.name || '';
+        document.getElementById('zone-sec-level').value = curr.security_level || 'Medium';
+        document.getElementById('zone-color-input').value = curr.color || '#10b981';
+      }
     }
 
-    function drawPolygon() {
+    function onZoneSelected() {
+      selectedZoneIndex = parseInt(document.getElementById('zone-select').value) || 0;
+      renderZoneSelectOptions();
+      drawMultiZonesCanvas();
+    }
+
+    function updateCurrentZoneMeta() {
+      if (multiZones.length === 0) return;
+      const curr = multiZones[selectedZoneIndex];
+      curr.name = document.getElementById('zone-name-input').value.trim() || 'Zone';
+      curr.security_level = document.getElementById('zone-sec-level').value;
+      curr.color = document.getElementById('zone-color-input').value;
+      
+      const select = document.getElementById('zone-select');
+      if (select.options[selectedZoneIndex]) {
+        select.options[selectedZoneIndex].textContent = `${curr.name} (${curr.security_level})`;
+      }
+      drawMultiZonesCanvas();
+    }
+
+    function addNewZone() {
+      const id = 'zone_' + Date.now();
+      const count = multiZones.length + 1;
+      const colors = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#a855f7'];
+      const newColor = colors[(count - 1) % colors.length];
+      multiZones.push({
+        id: id,
+        name: `Room ${count}`,
+        security_level: 'Medium',
+        color: newColor,
+        polygon: []
+      });
+      selectedZoneIndex = multiZones.length - 1;
+      renderZoneSelectOptions();
+      drawMultiZonesCanvas();
+    }
+
+    function deleteSelectedZone() {
+      if (multiZones.length === 0) return;
+      multiZones.splice(selectedZoneIndex, 1);
+      selectedZoneIndex = Math.max(0, selectedZoneIndex - 1);
+      renderZoneSelectOptions();
+      drawMultiZonesCanvas();
+    }
+
+    function resetCurrentZonePoints() {
+      if (multiZones.length > 0) {
+        multiZones[selectedZoneIndex].polygon = [];
+        drawMultiZonesCanvas();
+      }
+    }
+
+    function hexToRgba(hex, alpha) {
+      hex = (hex || '#10b981').replace('#', '');
+      if (hex.length === 6) {
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+      return `rgba(16, 185, 129, ${alpha})`;
+    }
+
+    function drawMultiZonesCanvas() {
       const canvas = document.getElementById('security-zone-canvas');
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Render camera snapshot background if loaded
       if (bgSnapshotImg && bgSnapshotImg.complete && bgSnapshotImg.naturalWidth > 0) {
         ctx.drawImage(bgSnapshotImg, 0, 0, canvas.width, canvas.height);
-        // Add subtle dimming overlay to highlight polygon boundary & handles
         ctx.fillStyle = 'rgba(11, 15, 25, 0.35)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       } else {
@@ -1212,125 +1320,98 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // Draw subtle background grid
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
-      const stepX = Math.round(canvas.width / 8);
-      const stepY = Math.round(canvas.height / 6);
-      for (let x = 0; x < canvas.width; x += stepX) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < canvas.height; y += stepY) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
+      multiZones.forEach((z, idx) => {
+        const isSelected = (idx === selectedZoneIndex);
+        const pts = z.polygon || [];
+        const color = z.color || '#10b981';
 
-      if (zonePoints.length === 0) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 16px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Click anywhere on the camera frame to place boundary vertices', canvas.width / 2, canvas.height / 2);
-        return;
-      }
+        if (pts.length >= 3) {
+          ctx.beginPath();
+          ctx.moveTo(pts[0][0], pts[0][1]);
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i][0], pts[i][1]);
+          }
+          ctx.closePath();
+          ctx.fillStyle = hexToRgba(color, isSelected ? 0.35 : 0.15);
+          ctx.fill();
 
-      // Fill polygon if 3+ points
-      if (zonePoints.length >= 3) {
-        ctx.beginPath();
-        ctx.moveTo(zonePoints[0][0], zonePoints[0][1]);
-        for (let i = 1; i < zonePoints.length; i++) {
-          ctx.lineTo(zonePoints[i][0], zonePoints[i][1]);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = isSelected ? 4 : 2;
+          ctx.setLineDash(isSelected ? [] : [6, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 18px Inter, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(`[${z.name}] (${z.security_level})`, pts[0][0] + 10, pts[0][1] + 25);
+        } else if (pts.length > 0) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = isSelected ? 3 : 1;
+          ctx.beginPath();
+          ctx.moveTo(pts[0][0], pts[0][1]);
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i][0], pts[i][1]);
+          }
+          ctx.stroke();
         }
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.3)';
-        ctx.fill();
-      }
 
-      // Draw boundary stroke lines
-      ctx.strokeStyle = '#10b981';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(zonePoints[0][0], zonePoints[0][1]);
-      for (let i = 1; i < zonePoints.length; i++) {
-        ctx.lineTo(zonePoints[i][0], zonePoints[i][1]);
-      }
-      if (zonePoints.length >= 3) {
-        ctx.closePath();
-      }
-      ctx.stroke();
-
-      // Draw node points and numbers
-      const radius = Math.max(6, Math.round(canvas.width / 160));
-      zonePoints.forEach((p, idx) => {
-        ctx.beginPath();
-        ctx.arc(p[0], p[1], radius, 0, 2 * Math.PI);
-        ctx.fillStyle = '#ef4444';
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#ffffff';
-        ctx.stroke();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 14px Inter, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`#${idx + 1} (${p[0]}, ${p[1]})`, p[0] + radius + 4, p[1] - radius);
+        if (isSelected) {
+          const radius = Math.max(7, Math.round(canvas.width / 150));
+          pts.forEach((p, pIdx) => {
+            ctx.beginPath();
+            ctx.arc(p[0], p[1], radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ef4444';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter, sans-serif';
+            ctx.fillText(`#${pIdx + 1}`, p[0] + radius + 4, p[1] - radius);
+          });
+        }
       });
     }
 
-    async function loadSecurityZone(cameraId) {
+    async function loadMultiZones() {
       try {
-        const url = (cameraId !== undefined && cameraId !== null)
-          ? `/api/security_zone/${encodeURIComponent(cameraId)}`
-          : '/api/security_zone';
-        const res = await fetch(url);
-        const ct = res.headers.get('content-type') || '';
-        if (res.ok && ct.includes('application/json')) {
+        const res = await fetch('/api/security_zone');
+        if (res.ok) {
           const data = await res.json();
-          const canvas = document.getElementById('security-zone-canvas');
           if (data.camera_width && data.camera_height) {
+            const canvas = document.getElementById('security-zone-canvas');
             canvas.width = data.camera_width;
             canvas.height = data.camera_height;
           }
-          if (data.success && Array.isArray(data.points || data.polygon)) {
-            zonePoints = (data.points || data.polygon).map(pt => [pt[0], pt[1]]);
-            drawPolygon();
+          if (data.success && Array.isArray(data.zones)) {
+            multiZones = data.zones;
           }
         }
       } catch (e) {
-        console.error('Failed to load security zone:', e);
+        console.error('Error loading multi zones:', e);
       }
+      if (multiZones.length === 0) addNewZone();
+      renderZoneSelectOptions();
+      drawMultiZonesCanvas();
     }
 
-    async function saveSecurityZone() {
-      if (zonePoints.length < 3) {
-        document.getElementById('zone-error').textContent = '⚠️ Security zone polygon must have at least 3 vertices.';
-        return;
-      }
+    async function saveAllMultiZones() {
       try {
         const res = await fetch('/api/security_zone', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ points: zonePoints })
+          body: JSON.stringify({ zones: multiZones })
         });
-        const ct = res.headers.get('content-type') || '';
-        if (ct.includes('application/json')) {
+        if (res.ok) {
           const data = await res.json();
-          if (res.ok && data.success) {
-            showToast('Security zone saved successfully');
+          if (data.success) {
+            showToast('⚡ Multi-Zone Security Configuration Saved!');
             document.getElementById('security-zone-modal').style.display = 'none';
-          } else {
-            document.getElementById('zone-error').textContent = '⚠️ ' + (data.error || 'Failed to save security zone.');
           }
-        } else {
-          document.getElementById('zone-error').textContent = `⚠️ Server returned error status ${res.status}`;
         }
       } catch (e) {
-        document.getElementById('zone-error').textContent = '⚠️ Network error saving security zone.';
-        console.error(e);
+        console.error('Error saving multi-zones:', e);
       }
     }
 
