@@ -123,7 +123,7 @@ def cmd_web(args):
     app = create_app()
     logger.info(f"Launching WebSocket Web UI Dashboard at http://{args.host}:{args.port}...")
     if hasattr(app, "socketio") and app.socketio is not None:
-        app.socketio.run(app, host=args.host, port=args.port, debug=False)
+        app.socketio.run(app, host=args.host, port=args.port, debug=False, allow_unsafe_werkzeug=True)
     else:
         app.run(host=args.host, port=args.port, debug=False)
 

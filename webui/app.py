@@ -31,7 +31,13 @@ def create_app():
     app = Flask(__name__, template_folder="templates")
     socketio = None
     if HAS_SOCKETIO:
-        socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+        socketio = SocketIO(
+            app,
+            cors_allowed_origins="*",
+            async_mode="threading",
+            path="/socket.io",
+            always_connect=True
+        )
         app.socketio = socketio
     
     # Initialize Core Components

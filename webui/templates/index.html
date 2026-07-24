@@ -1431,7 +1431,7 @@
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
     if (typeof io !== 'undefined') {
-      const socket = io();
+      const socket = io({ transports: ['websocket', 'polling'] });
       socket.on('connect', () => {
         console.log('Connected to WebSocket Server (Instant Real-Time Events & Telemetry Active)');
       });
