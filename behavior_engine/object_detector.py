@@ -93,11 +93,12 @@ class COCOObjectDetector:
                 logger.info(f"Initializing Hailo-8 NPU Object Detector from HEF '{self.hef_path}'...")
                 self.hailo_engine = HailoInferenceEngine(self.hef_path)
                 if self.hailo_engine.is_ready:
-                    logger.info("Hailo-8 NPU Object Detector active.")
+                    logger.info("⚡ Hailo-8 NPU Object Detector active. Running object detection on 26 TOPS AI Hat+ hardware.")
+                    return
             except Exception as e:
                 logger.warning(f"Could not load Hailo HEF model: {e}")
 
-        # 2. Fallback to OpenCV NanoDet ONNX CPU model
+        # 2. Fallback to OpenCV NanoDet ONNX CPU model ONLY if Hailo is absent
         self.onnx_path = ensure_coco_model(self.model_dir)
         self._init_onnx_model()
 
@@ -124,17 +125,14 @@ class COCOObjectDetector:
         h, w = frame.shape[:2]
         detected = []
 
-        # 1. Execute on Hailo-8 NPU if ready
+        # 1. Execute on Hailo-8 NPU if ready (100% NPU Hardware Execution)
         if self.hailo_engine and self.hailo_engine.is_ready:
             try:
-                # Resize input frame to 640x640 for Hailo HEF NPU stream
                 input_blob = cv2.resize(frame, (640, 640))
                 input_blob = np.expand_dims(input_blob, axis=0)
                 results = self.hailo_engine.infer(input_blob)
                 if results:
-                    # Parse Hailo-8 output tensors
                     output_tensor = list(results.values())[0]
-                    # Process Hailo NPU bounding boxes
                     if len(output_tensor.shape) >= 2:
                         for item in output_tensor[0]:
                             if len(item) >= 6:
@@ -151,8 +149,7 @@ class COCOObjectDetector:
                                             "box": (bx1, by1, bx2, by2),
                                             "confidence": round(float(score), 2)
                                         })
-                        if len(detected) > 0:
-                            return detected
+                return detected
             except Exception as e:
                 logger.error(f"Hailo-8 NPU object detection error: {e}")
 
