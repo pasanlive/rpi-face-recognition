@@ -1198,7 +1198,14 @@
       document.getElementById('zone-error').textContent = '';
 
       bgSnapshotImg = new Image();
-      bgSnapshotImg.onload = () => drawMultiZonesCanvas();
+      bgSnapshotImg.onload = () => {
+        const canvas = document.getElementById('security-zone-canvas');
+        if (bgSnapshotImg.naturalWidth && bgSnapshotImg.naturalHeight) {
+          canvas.width = bgSnapshotImg.naturalWidth;
+          canvas.height = bgSnapshotImg.naturalHeight;
+        }
+        drawMultiZonesCanvas();
+      };
       bgSnapshotImg.src = '/api/camera_snapshot?t=' + Date.now();
 
       const canvas = document.getElementById('security-zone-canvas');
@@ -1398,6 +1405,15 @@
 
     async function saveAllMultiZones() {
       try {
+        const canvas = document.getElementById('security-zone-canvas');
+        const cWidth = canvas.width || 1920;
+        const cHeight = canvas.height || 1080;
+        
+        multiZones.forEach(z => {
+          z.canvas_width = cWidth;
+          z.canvas_height = cHeight;
+        });
+
         const res = await fetch('/api/security_zone', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

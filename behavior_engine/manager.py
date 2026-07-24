@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Tuple, Optional
 from config import Config
 from .facial_behavior import FacialBehaviorAnalyzer
 from .pose_behavior import PoseBehaviorAnalyzer
+from .security_zone import get_scaled_zone_polygon
 from activity_logger.logger import ActivityLogger
 
 logger = logging.getLogger(__name__)
@@ -49,14 +50,15 @@ class BehaviorEngineManager:
             self.pose_analyzer._reload_security_zone_if_needed()
             multi_zones = getattr(self.pose_analyzer, "multi_zones", [])
             for zone in multi_zones:
-                poly = zone.get("polygon", [])
                 name = zone.get("name", "Zone")
                 sec_level = zone.get("security_level", "Medium")
                 color_hex = zone.get("color", "#10b981")
                 bgr = hex_to_bgr(color_hex)
 
-                if len(poly) >= 3:
-                    pts = np.array(poly, dtype=np.int32).reshape((-1, 1, 2))
+                poly_pts = get_scaled_zone_polygon(zone, frame_w=w, frame_h=h)
+
+                if len(poly_pts) >= 3:
+                    pts = poly_pts.reshape((-1, 1, 2))
                     # Draw polygon border
                     cv2.polylines(annotated_frame, [pts], isClosed=True, color=bgr, thickness=2, lineType=cv2.LINE_AA)
                     
@@ -66,7 +68,7 @@ class BehaviorEngineManager:
                     cv2.addWeighted(overlay, 0.12, annotated_frame, 0.88, 0, annotated_frame)
 
                     # Label text at first polygon vertex
-                    lx, ly = poly[0][0] + 8, poly[0][1] + 24
+                    lx, ly = poly_pts[0][0] + 8, poly_pts[0][1] + 24
                     lx = min(w - 150, max(10, lx))
                     ly = min(h - 20, max(25, ly))
                     label_str = f"[{name}] ({sec_level})"

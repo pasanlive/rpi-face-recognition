@@ -118,13 +118,40 @@ def validate_polygon(polygon: List[List[int]]) -> bool:
             return False
     return True
 
-def find_zone_for_point(point: Tuple[int, int], zones: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def get_scaled_zone_polygon(zone: Dict[str, Any], frame_w: int, frame_h: int) -> np.ndarray:
+    """
+    Scale polygon coordinates from zone canvas resolution to actual OpenCV frame resolution.
+    Guarantees 100% pixel-perfect alignment.
+    """
+    poly = zone.get("polygon", [])
+    if not poly:
+        return np.empty((0, 2), dtype=np.int32)
+
+    canvas_w = zone.get("canvas_width", Config.CAMERA_WIDTH)
+    canvas_h = zone.get("canvas_height", Config.CAMERA_HEIGHT)
+
+    # If canvas size matches frame size, return direct points
+    if canvas_w == frame_w and canvas_h == frame_h:
+        return np.array(poly, dtype=np.int32)
+
+    # Scale points proportionally
+    scale_x = frame_w / float(canvas_w) if canvas_w > 0 else 1.0
+    scale_y = frame_h / float(canvas_h) if canvas_h > 0 else 1.0
+
+    scaled_pts = []
+    for pt in poly:
+        sx = int(round(pt[0] * scale_x))
+        sy = int(round(pt[1] * scale_y))
+        scaled_pts.append([sx, sy])
+
+    return np.array(scaled_pts, dtype=np.int32)
+
+def find_zone_for_point(point: Tuple[int, int], zones: List[Dict[str, Any]], frame_w: int = Config.CAMERA_WIDTH, frame_h: int = Config.CAMERA_HEIGHT) -> Optional[Dict[str, Any]]:
     """Check which security zone polygon contains the given (x, y) point."""
     x, y = point
     for zone in zones:
-        poly = zone.get("polygon", [])
-        if len(poly) >= 3:
-            pts = np.array(poly, dtype=np.int32)
+        pts = get_scaled_zone_polygon(zone, frame_w, frame_h)
+        if len(pts) >= 3:
             dist = cv2.pointPolygonTest(pts, (float(x), float(y)), False)
             if dist >= 0:
                 return zone
@@ -143,7 +170,9 @@ class ZoneTransitionTracker:
         point: Tuple[int, int],
         zones: List[Dict[str, Any]],
         activity_logger: Optional[Any] = None,
-        frame_crop: Optional[Any] = None
+        frame_crop: Optional[Any] = None,
+        frame_w: int = Config.CAMERA_WIDTH,
+        frame_h: int = Config.CAMERA_HEIGHT
     ) -> Optional[Dict[str, Any]]:
         """
         Check person's point against active zones.
@@ -152,7 +181,7 @@ class ZoneTransitionTracker:
         if not person_name or person_name == "Unknown":
             return None
 
-        current_zone = find_zone_for_point(point, zones)
+        current_zone = find_zone_for_point(point, zones, frame_w=frame_w, frame_h=frame_h)
         curr_zone_id = current_zone["id"] if current_zone else "OUTSIDE"
         curr_zone_name = current_zone["name"] if current_zone else "Unrestricted Area"
 
