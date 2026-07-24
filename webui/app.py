@@ -361,6 +361,19 @@ def create_app():
                 data = request.json or {}
                 if 'threshold' in data:
                     current_threshold = float(data['threshold'])
+                if 'enable_face_recognition' in data:
+                    Config.ENABLE_FACE_RECOGNITION = bool(data['enable_face_recognition'])
+                if 'enable_behavioral_detection' in data:
+                    b_val = bool(data['enable_behavioral_detection'])
+                    Config.ENABLE_POSE_BEHAVIOR = b_val
+                    Config.ENABLE_FACIAL_BEHAVIOR = b_val
+                if 'enable_facial_behavior' in data:
+                    Config.ENABLE_FACIAL_BEHAVIOR = bool(data['enable_facial_behavior'])
+                if 'enable_pose_behavior' in data:
+                    Config.ENABLE_POSE_BEHAVIOR = bool(data['enable_pose_behavior'])
+                if 'enable_object_detection' in data:
+                    Config.ENABLE_OBJECT_DETECTION = bool(data['enable_object_detection'])
+
                 if 'camera_source' in data or 'camera_index' in data:
                     raw_source = data.get('camera_source', data.get('camera_index'))
                     if isinstance(raw_source, str) and raw_source.isdigit():
@@ -382,8 +395,11 @@ def create_app():
                     "threshold": current_threshold,
                     "camera_index": current_camera_index,
                     "camera_source": current_camera_index,
-                    "camera_width": Config.CAMERA_WIDTH,
-                    "camera_height": Config.CAMERA_HEIGHT
+                    "enable_face_recognition": Config.ENABLE_FACE_RECOGNITION,
+                    "enable_behavioral_detection": Config.ENABLE_POSE_BEHAVIOR,
+                    "enable_facial_behavior": Config.ENABLE_FACIAL_BEHAVIOR,
+                    "enable_pose_behavior": Config.ENABLE_POSE_BEHAVIOR,
+                    "enable_object_detection": Config.ENABLE_OBJECT_DETECTION
                 })
 
             return jsonify({
@@ -394,8 +410,11 @@ def create_app():
                 "camera_width": Config.CAMERA_WIDTH,
                 "camera_height": Config.CAMERA_HEIGHT,
                 "target_device": Config.TARGET_DEVICE,
+                "enable_face_recognition": Config.ENABLE_FACE_RECOGNITION,
+                "enable_behavioral_detection": Config.ENABLE_POSE_BEHAVIOR,
                 "enable_facial_behavior": Config.ENABLE_FACIAL_BEHAVIOR,
                 "enable_pose_behavior": Config.ENABLE_POSE_BEHAVIOR,
+                "enable_object_detection": Config.ENABLE_OBJECT_DETECTION,
                 "enable_activity_logging": Config.ENABLE_ACTIVITY_LOGGING
             })
         except Exception as e:

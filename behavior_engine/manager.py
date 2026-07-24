@@ -48,14 +48,16 @@ class BehaviorEngineManager:
         h, w = frame.shape[:2]
 
         # 1. Execute COCO Object Detection
-        detected_objects = self.object_detector.detect_objects(frame)
-        for obj in detected_objects:
-            ox1, oy1, ox2, oy2 = obj["box"]
-            olabel = obj["label"].capitalize()
-            # Draw cyan bounding box for detected items
-            cv2.rectangle(annotated_frame, (ox1, oy1), (ox2, oy2), (255, 255, 0), 2, cv2.LINE_AA)
-            cv2.putText(annotated_frame, f"Item: {olabel}", (ox1, max(15, oy1 - 5)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1, cv2.LINE_AA)
+        detected_objects = []
+        if getattr(Config, "ENABLE_OBJECT_DETECTION", True):
+            detected_objects = self.object_detector.detect_objects(frame)
+            for obj in detected_objects:
+                ox1, oy1, ox2, oy2 = obj["box"]
+                olabel = obj["label"].capitalize()
+                # Draw cyan bounding box for detected items
+                cv2.rectangle(annotated_frame, (ox1, oy1), (ox2, oy2), (255, 255, 0), 2, cv2.LINE_AA)
+                cv2.putText(annotated_frame, f"Item: {olabel}", (ox1, max(15, oy1 - 5)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1, cv2.LINE_AA)
 
         # 2. Draw Multi-Zone Security Polygons and Room Labels
         if Config.ENABLE_POSE_BEHAVIOR:

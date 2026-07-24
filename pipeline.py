@@ -67,14 +67,17 @@ class FaceRecognitionPipeline:
             bboxes.append(bbox)
             landmarks_list.append(landmarks)
 
-            aligned_face, _ = align_and_crop(frame, [lm["landmark"] for lm in landmarks], image_size=Config.INPUT_FACE_SIZE)
-            aligned_faces.append(aligned_face)
+        identities_and_scores = []
+        if getattr(Config, "ENABLE_FACE_RECOGNITION", True):
+            aligned_faces = []
+            for landmarks in landmarks_list:
+                aligned_face, _ = align_and_crop(frame, [lm["landmark"] for lm in landmarks], image_size=Config.INPUT_FACE_SIZE)
+                aligned_faces.append(aligned_face)
 
-        # Batch embed aligned faces on Hailo-8 NPU / OpenCV
-        embeddings = self.embedder.extract_batch(aligned_faces)
-
-        # Batch identify embeddings in LanceDB
-        identities_and_scores = self.db_manager.identify_batch(embeddings, threshold=threshold)
+            embeddings = self.embedder.extract_batch(aligned_faces)
+            identities_and_scores = self.db_manager.identify_batch(embeddings, threshold=threshold)
+        else:
+            identities_and_scores = [("Person", 1.0) for _ in bboxes]
 
         recognition_results = []
         for bbox, landmarks, (name, score) in zip(bboxes, landmarks_list, identities_and_scores):

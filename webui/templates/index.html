@@ -719,6 +719,35 @@
         <button class="modal-close-btn" onclick="closeSettingsModal()" aria-label="Close modal">&times;</button>
       </div>
       <div class="modal-body">
+
+        <!-- Engine Detection Modes Toggle Section -->
+        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 1.25rem;">
+          <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #f8fafc; display: flex; align-items: center; gap: 0.4rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Active Detection & Recognition Engines
+          </h4>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Face Recognition -->
+            <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 0.85rem;">
+              <span style="color: var(--text-color); font-weight: 500;">Face Recognition Engine (ArcFace + LanceDB)</span>
+              <input type="checkbox" id="toggle-face-rec" onchange="toggleDetectionMode('enable_face_recognition', this.checked)" style="width: 18px; height: 18px; accent-color: var(--accent-color); cursor: pointer;">
+            </label>
+
+            <!-- Behavioral Detection -->
+            <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 0.85rem;">
+              <span style="color: var(--text-color); font-weight: 500;">Behavioral Detection Engine (Gaze, Drowsiness, Pose & Intrusion)</span>
+              <input type="checkbox" id="toggle-behavior-rec" onchange="toggleDetectionMode('enable_behavioral_detection', this.checked)" style="width: 18px; height: 18px; accent-color: var(--accent-color); cursor: pointer;">
+            </label>
+
+            <!-- Object Detection -->
+            <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 0.85rem;">
+              <span style="color: var(--text-color); font-weight: 500;">Object & Item Carrying Detection (Hailo-8 / COCO)</span>
+              <input type="checkbox" id="toggle-object-rec" onchange="toggleDetectionMode('enable_object_detection', this.checked)" style="width: 18px; height: 18px; accent-color: var(--accent-color); cursor: pointer;">
+            </label>
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Similarity Threshold: <span id="threshold-val" class="slider-val">0.36</span></label>
           <div class="slider-container">
@@ -1033,10 +1062,34 @@
             if (data.camera_source !== undefined || data.camera_index !== undefined) {
               document.getElementById('camera-source-input').value = data.camera_source ?? data.camera_index;
             }
+            document.getElementById('toggle-face-rec').checked = (data.enable_face_recognition !== false);
+            document.getElementById('toggle-behavior-rec').checked = (data.enable_behavioral_detection !== false);
+            document.getElementById('toggle-object-rec').checked = (data.enable_object_detection !== false);
           }
         }
       } catch (e) {
         console.error('Failed to load settings:', e);
+      }
+    }
+
+    async function toggleDetectionMode(modeKey, isEnabled) {
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [modeKey]: isEnabled })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            const modeLabel = modeKey === 'enable_face_recognition' ? 'Face Recognition'
+                            : modeKey === 'enable_behavioral_detection' ? 'Behavioral Detection'
+                            : 'Object Detection';
+            showToast(`${modeLabel} ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
+          }
+        }
+      } catch (e) {
+        console.error('Error toggling detection mode:', e);
       }
     }
 

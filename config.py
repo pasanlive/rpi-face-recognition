@@ -27,7 +27,9 @@ class Config:
     CAMERA_WIDTH = int(os.getenv("CAMERA_WIDTH", "1920"))
     CAMERA_HEIGHT = int(os.getenv("CAMERA_HEIGHT", "1080"))
 
-    # Behavioral Detection Settings
+    # Detection Modes Settings
+    ENABLE_FACE_RECOGNITION = os.getenv("ENABLE_FACE_RECOGNITION", "true").lower() == "true"
+    ENABLE_OBJECT_DETECTION = os.getenv("ENABLE_OBJECT_DETECTION", "true").lower() == "true"
     ENABLE_FACIAL_BEHAVIOR = os.getenv("ENABLE_FACIAL_BEHAVIOR", "true").lower() == "true"
     ENABLE_POSE_BEHAVIOR = os.getenv("ENABLE_POSE_BEHAVIOR", "true").lower() == "true"
     ENABLE_ACTIVITY_LOGGING = os.getenv("ENABLE_ACTIVITY_LOGGING", "true").lower() == "true"
