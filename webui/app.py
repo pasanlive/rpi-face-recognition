@@ -17,6 +17,7 @@ from database.manager import FaceDatabaseManager
 from pipeline import FaceRecognitionPipeline
 from activity_logger.logger import ActivityLogger
 from camera_wrapper import CameraWrapper
+from system_metrics import get_system_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -223,6 +224,17 @@ def create_app():
             return jsonify({"error": "File not found"}), 404
 
 
+
+    @app.route('/api/system_stats')
+    def system_stats():
+        try:
+            metrics = get_system_metrics()
+            metrics["success"] = True
+            metrics["target_device"] = Config.TARGET_DEVICE
+            return jsonify(metrics)
+        except Exception as e:
+            logger.error(f"Error fetching system stats: {e}")
+            return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/camera_snapshot')
     def camera_snapshot():

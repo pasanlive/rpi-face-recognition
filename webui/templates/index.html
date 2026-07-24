@@ -479,10 +479,22 @@
       <span class="logo-badge">RPi5 + AI Hat+</span>
       <h1>Face & Behavioral Recognition Dashboard (26 TOPS)</h1>
     </div>
-    <div class="header-status">
+    <div class="header-status" style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
       <div class="chip-badge">
         <span class="status-dot"></span>
         Hailo-8 NPU Engine Active
+      </div>
+      <div class="chip-badge" style="background: rgba(15, 23, 42, 0.8);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
+        CPU: <span id="rpi-cpu-val" style="color:#10b981; font-weight:600; margin-left:2px;">--%</span>
+      </div>
+      <div class="chip-badge" style="background: rgba(15, 23, 42, 0.8);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M6 19v-3b0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><path d="M6 5v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5"/><line x1="12" y1="10" x2="12" y2="14"/></svg>
+        RAM: <span id="rpi-ram-val" style="color:#3b82f6; font-weight:600; margin-left:2px;">--%</span>
+      </div>
+      <div class="chip-badge" style="background: rgba(15, 23, 42, 0.8);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+        Temp: <span id="rpi-temp-val" style="color:#f59e0b; font-weight:600; margin-left:2px;">--°C</span>
       </div>
     </div>
   </header>
@@ -526,6 +538,65 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Pop-out Logs (Monitor 2)
         </button>
+      </div>
+    </div>
+
+    <!-- Raspberry Pi Hardware Resource Telemetry Card -->
+    <div class="card">
+      <div class="card-title">
+        <span style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
+          Raspberry Pi Hardware Resource Usage
+        </span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Real-Time System Telemetry (RPi 5 + Hailo-8)</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+        
+        <!-- CPU Utilization -->
+        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+            <span style="color: var(--text-muted); font-weight: 500;">CPU Utilization</span>
+            <span id="metric-cpu-text" style="font-weight: 700; color: #10b981;">0.0%</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+            <div id="metric-cpu-bar" style="width: 0%; height: 100%; background: #10b981; transition: width 0.4s ease;"></div>
+          </div>
+        </div>
+
+        <!-- RAM Memory -->
+        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+            <span style="color: var(--text-muted); font-weight: 500;">RAM Memory</span>
+            <span id="metric-ram-text" style="font-weight: 700; color: #3b82f6;">0 MB / 0 MB (0%)</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+            <div id="metric-ram-bar" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.4s ease;"></div>
+          </div>
+        </div>
+
+        <!-- SoC CPU Temperature -->
+        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+            <span style="color: var(--text-muted); font-weight: 500;">SoC Temperature</span>
+            <span id="metric-temp-text" style="font-weight: 700; color: #f59e0b;">0.0 °C</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+            <div id="metric-temp-bar" style="width: 0%; height: 100%; background: #f59e0b; transition: width 0.4s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Disk Storage -->
+        <div style="background: var(--input-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+            <span style="color: var(--text-muted); font-weight: 500;">Disk Storage</span>
+            <span id="metric-disk-text" style="font-weight: 700; color: #a855f7;">0.0%</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
+            <div id="metric-disk-bar" style="width: 0%; height: 100%; background: #a855f7; transition: width 0.4s ease;"></div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -947,11 +1018,59 @@
       }
     }
 
+    async function fetchSystemStats() {
+      try {
+        const res = await fetch('/api/system_stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            // CPU
+            const cpu = data.cpu_percent || 0;
+            document.getElementById('rpi-cpu-val').textContent = cpu + '%';
+            document.getElementById('metric-cpu-text').textContent = cpu + '%';
+            document.getElementById('metric-cpu-bar').style.width = Math.min(100, cpu) + '%';
+
+            // RAM
+            const ramPct = data.ram_percent || 0;
+            const ramUsedGb = ((data.ram_used_mb || 0) / 1024).toFixed(1);
+            const ramTotalGb = ((data.ram_total_mb || 0) / 1024).toFixed(1);
+            document.getElementById('rpi-ram-val').textContent = ramPct + '%';
+            document.getElementById('metric-ram-text').textContent = `${ramUsedGb} GB / ${ramTotalGb} GB (${ramPct}%)`;
+            document.getElementById('metric-ram-bar').style.width = Math.min(100, ramPct) + '%';
+
+            // Temperature
+            const temp = data.cpu_temp || 0;
+            document.getElementById('rpi-temp-val').textContent = temp + '°C';
+            document.getElementById('metric-temp-text').textContent = temp + ' °C';
+            const tempPct = Math.min(100, Math.max(0, (temp / 85.0) * 100));
+            const tempBar = document.getElementById('metric-temp-bar');
+            tempBar.style.width = tempPct + '%';
+            if (temp > 75) {
+              tempBar.style.background = '#ef4444';
+            } else if (temp > 65) {
+              tempBar.style.background = '#f59e0b';
+            } else {
+              tempBar.style.background = '#10b981';
+            }
+
+            // Disk
+            const disk = data.disk_percent || 0;
+            document.getElementById('metric-disk-text').textContent = disk + '%';
+            document.getElementById('metric-disk-bar').style.width = Math.min(100, disk) + '%';
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch system stats:', e);
+      }
+    }
+
     // Initial load and periodic refresh
     loadSettings();
     fetchIdentities();
     fetchActivityLogs();
+    fetchSystemStats();
     setInterval(fetchActivityLogs, 4000); // Auto-refresh log table every 4s
+    setInterval(fetchSystemStats, 2000);   // Auto-refresh hardware telemetry every 2s
 
     // Modal Control Functions
     function openStreamModal() {
