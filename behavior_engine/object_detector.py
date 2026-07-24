@@ -164,8 +164,14 @@ class COCOObjectDetector:
                 outs = self.net.forward(self.net.getUnconnectedOutLayersNames())
 
                 if len(outs) == 6:
-                    cls_outs = outs[0:3]
-                    dis_outs = outs[3:6]
+                    # Dynamically match class score tensors and distance regression tensors by shape
+                    cls_tensors = [o[0] for o in outs if o.ndim == 3 and o.shape[2] == 80]
+                    dis_tensors = [o[0] for o in outs if o.ndim == 3 and o.shape[2] == 32]
+
+                    # Sort tensors by anchor count descending (2704 -> 676 -> 169)
+                    cls_tensors.sort(key=lambda t: t.shape[0], reverse=True)
+                    dis_tensors.sort(key=lambda t: t.shape[0], reverse=True)
+
                     strides = [8, 16, 32]
                     proj = np.arange(8, dtype=np.float32)
 
@@ -176,12 +182,12 @@ class COCOObjectDetector:
                     scale_x = w / 416.0
                     scale_y = h / 416.0
 
-                    for i, stride in enumerate(strides):
-                        cls_pred = cls_outs[i][0]
-                        dis_pred = dis_outs[i][0]
+                    for i, (cls_pred, dis_pred) in enumerate(zip(cls_tensors, dis_tensors)):
+                        stride = strides[i] if i < len(strides) else 32
+                        n_anchors = cls_pred.shape[0]
 
-                        feat_w = 416 // stride
-                        feat_h = 416 // stride
+                        feat_w = int(np.sqrt(n_anchors))
+                        feat_h = n_anchors // feat_w if feat_w > 0 else 1
 
                         grid_y, grid_x = np.mgrid[0:feat_h, 0:feat_w]
                         grid_x = (grid_x.flatten() + 0.5) * stride
@@ -195,6 +201,8 @@ class COCOObjectDetector:
 
                         mask = max_scores >= confidence_threshold
                         for idx in np.where(mask)[0]:
+                            if idx >= len(dis_pred) or idx >= len(grid_x):
+                                continue
                             score = float(max_scores[idx])
                             cls_id = int(max_cls[idx])
                             label = COCO_CLASSES[cls_id] if cls_id < len(COCO_CLASSES) else "object"
