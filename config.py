@@ -8,6 +8,7 @@ class Config:
     MODEL_DIR = os.getenv("FACE_APP_MODEL_DIR", "./models")
     DETECTION_MODEL_PATH = os.path.join(MODEL_DIR, "scrfd_10g_hailo8.hef")
     EMBEDDING_MODEL_PATH = os.path.join(MODEL_DIR, "arcface_mobilefacenet_hailo8.hef")
+    OBJECT_DETECTION_HEF_PATH = os.path.join(MODEL_DIR, "yolov8n.hef")
 
     # Vector Database Settings (LanceDB)
     DB_URI = os.getenv("FACE_APP_DB_URI", "./face_database")
