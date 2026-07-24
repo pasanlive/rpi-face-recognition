@@ -21,22 +21,21 @@ from system_metrics import get_system_metrics
 
 try:
     from flask_socketio import SocketIO, emit
+    socketio = SocketIO()
     HAS_SOCKETIO = True
 except ImportError:
+    socketio = None
     HAS_SOCKETIO = False
 
 logger = logging.getLogger(__name__)
 
 def create_app():
     app = Flask(__name__, template_folder="templates")
-    socketio = None
-    if HAS_SOCKETIO:
-        socketio = SocketIO(
+    if HAS_SOCKETIO and socketio is not None:
+        socketio.init_app(
             app,
             cors_allowed_origins="*",
-            async_mode="threading",
-            path="/socket.io",
-            always_connect=True
+            async_mode="threading"
         )
         app.socketio = socketio
     
